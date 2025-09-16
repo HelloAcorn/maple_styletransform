@@ -172,3 +172,7 @@ pyrightconfig.json
 
 # API Key
 .api_key
+
+# ignore files
+files/merged_images/
+files/videos/
