@@ -45,7 +45,7 @@ class PixelArtEditorPage:
         
         # 페이지 제목
         st.subheader("🎨 픽셀 아트 캐릭터 합성")
-        st.info("📸 셀카, 🎭 캐릭터, 😊 얼굴모양을 선택하여 나만의 픽셀 아트 캐릭터를 만들어보세요!")
+        st.info("📸 셀카, 🎭 캐릭터, 😊 얼굴모양을 선택해주세요! (현재는 캡틴만 가능)")
         
         
         # 3열 레이아웃 생성 (셀카 | 캐릭터선택 | 얼굴모양)
@@ -60,7 +60,7 @@ class PixelArtEditorPage:
         with upload_layout.use_slot("left"):
             st.markdown("### 📸 셀카")
             uploaded_selfie = st.file_uploader(
-                "셀카 사진을 업로드하세요",
+                "최소 상반신까지는 보이는 정면의 사진을 업로드하세요.",
                 type=['jpg', 'jpeg', 'png', 'bmp', 'webp'],
                 key="selfie_upload",
                 help="얼굴이 잘 보이는 셀카를 선택하세요"
@@ -181,43 +181,33 @@ class PixelArtEditorPage:
             selfie_image = Image.open(selfie_file)
             selfie_image = ImageUtils.resize_image_if_needed(selfie_image, 1024)
             
-            # 2. 캐릭터 이미지 로드
-            status_text.text("🎭 캐릭터 이미지 로드 중...")
-            progress_bar.progress(15)
+            # 2. 캐릭터+얼굴 조합 이미지 로드
+            status_text.text(f"🎭 캐릭터+얼굴 조합 이미지 로드 중... ({character_name}_{face_shape})")
+            progress_bar.progress(20)
             
-            character_image = self.asset_manager.get_asset("files/character_image", character_name, output_type="image")
-            if not character_image:
-                st.error(f"❌ 캐릭터 이미지를 로드할 수 없습니다: {character_name}")
+            combination_image = self.asset_manager.get_char_face_combination(character_name, face_shape)
+            if not combination_image:
+                st.error(f"❌ 조합 이미지를 찾을 수 없습니다: {character_name}_{face_shape}.png")
+                st.info("char_face_image 폴더에 해당 조합 이미지가 있는지 확인해주세요.")
                 return
             
-            character_image = ImageUtils.resize_image_if_needed(character_image, 1024)
+            combination_image = ImageUtils.resize_image_if_needed(combination_image, 1024)
             
-            # 3. 얼굴 모양 이미지 로드
-            status_text.text("😊 얼굴 모양 이미지 로드 중...")
-            progress_bar.progress(25)
-            
-            face_image = self.asset_manager.get_asset("files/face_image", face_shape, output_type="image")
-            if not face_image:
-                st.error(f"❌ 얼굴 모양 이미지를 로드할 수 없습니다: {face_shape}")
-                return
-            
-            face_image = ImageUtils.resize_image_if_needed(face_image, 1024)
-            
-            # 4. Gemini AI 모델 초기화
+            # 3. Gemini AI 모델 초기화
             status_text.text("🔧 Gemini AI 모델 초기화 중...")
-            progress_bar.progress(35)
+            progress_bar.progress(40)
             
             processor = GeminiImageProcessor(api_key)
             
-            # 5. 픽셀 아트 캐릭터 합성 (얼굴 모양 이미지 포함)
-            status_text.text(f"🎨 픽셀 아트 캐릭터 합성 중... (얼굴모양: {face_shape})")
-            progress_bar.progress(50)
+            # 4. 픽셀 아트 캐릭터 합성 (셀카 + 조합이미지)
+            status_text.text(f"🎨 픽셀 아트 캐릭터 합성 중... ({character_name}_{face_shape})")
+            progress_bar.progress(60)
             
-            # 얼굴 모양 이미지 정보를 스타일에 추가
-            enhanced_style = f"{self.default_style} (캐릭터: {character_name}, 얼굴모양: {face_shape})"
+            # 조합 이미지 정보를 스타일에 추가
+            enhanced_style = f"{self.default_style} (조합: {character_name}_{face_shape})"
             
-            # 셀카를 기반으로 캐릭터와 얼굴 모양을 적용
-            merged_image = processor.create_artistic_merge(selfie_image, character_image, enhanced_style)
+            # 셀카와 조합 이미지로 픽셀 아트 생성 (캐릭터와 얼굴 정보 전달)
+            merged_image = processor.create_artistic_merge(selfie_image, combination_image, enhanced_style, character_name, face_shape)
             progress_bar.progress(80)
             
             if merged_image:
@@ -227,8 +217,8 @@ class PixelArtEditorPage:
                 
                 status_text.text("✅ 픽셀 아트 캐릭터 합성 완료!")
                 
-                # 결과 표시
-                self._display_result(merged_image, character_name, face_shape, saved_path)
+                # 결과 표시 (조합 이미지 사용됨을 표시)
+                self._display_result(merged_image, f"{character_name}_{face_shape}", "조합이미지", saved_path)
                 
                 # 오래된 파일 정리
                 ImageUtils.cleanup_old_files("files/uploads")

@@ -136,7 +136,7 @@ class VideoGeneratorPage:
         
         with col2:
             # 동영상 길이
-            duration = st.slider("동영상 길이 (초)", 3, 6, 4)
+            duration = st.slider("동영상 길이 (초)", 3, 6, 3)
             
             # 해상도 선택
             video_generator = BytePlusVideoGenerator()
@@ -190,7 +190,7 @@ class VideoGeneratorPage:
             status_text.info("🎬 동영상 생성 중... (시간이 걸릴 수 있습니다)")
             progress_bar.progress(40)
             
-            task_result = video_generator.wait_for_completion(task_id, max_wait_time=300)
+            task_result = video_generator.wait_for_completion(task_id, max_wait_time=90)
             
             if not task_result:
                 status_text.error("❌ 동영상 생성에 실패했거나 시간이 초과되었습니다.")

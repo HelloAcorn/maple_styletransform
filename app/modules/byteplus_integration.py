@@ -138,7 +138,7 @@ class BytePlusVideoGenerator:
                 self.create_video_url,
                 headers=headers,
                 data=json.dumps(request_data),  # json 대신 data 사용
-                timeout=30
+                timeout=90
             )
             
             log_api_request(self.logger, "BytePlus", self.create_video_url, f"응답 수신 (상태코드: {response.status_code})")
@@ -176,7 +176,7 @@ class BytePlusVideoGenerator:
             response = requests.get(
                 f"{self.query_video_url}/{task_id}",
                 headers=headers,
-                timeout=30
+                timeout=90
             )
             
             if response.status_code == 200:
@@ -190,7 +190,7 @@ class BytePlusVideoGenerator:
             print(f"동영상 작업 상태 조회 중 오류 발생: {str(e)}")
             return None
     
-    def wait_for_completion(self, task_id: str, max_wait_time: int = 300, 
+    def wait_for_completion(self, task_id: str, max_wait_time: int = 90, 
                            check_interval: int = 5) -> Optional[Dict[str, Any]]:
         """
         동영상 생성 완료까지 대기

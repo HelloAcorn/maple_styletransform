@@ -66,7 +66,7 @@ class GeminiImageProcessor:
         }
     
     def merge_images(self, base_character: Union[str, Image.Image], reference_photo: Union[str, Image.Image], 
-                    style: str = "natural") -> Optional[Image.Image]:
+                    style: str = "natural", character_name: str = None, face_name: str = None) -> Optional[Image.Image]:
         """
         픽셀 아트 캐릭터를 참고 사진의 스타일로 편집
         
@@ -74,6 +74,8 @@ class GeminiImageProcessor:
             base_character: 기본 픽셀 아트 캐릭터 이미지
             reference_photo: 스타일 참고용 사진
             style: 편집 스타일 (현재는 사용하지 않음, 프롬프트 고정)
+            character_name: 캐릭터 이름 (프롬프트 선택용)
+            face_name: 얼굴 모양 이름 (프롬프트 선택용)
             
         Returns:
             PIL.Image.Image: 편집된 픽셀 아트 캐릭터 또는 None (실패 시)
@@ -91,8 +93,8 @@ class GeminiImageProcessor:
             base_character_part = self._image_to_parts(base_character)
             reference_photo_part = self._image_to_parts(reference_photo)
             
-            # YAML에서 픽셀 아트 편집 프롬프트 로드
-            prompt = self.prompt_manager.get_pixel_art_prompt()
+            # YAML에서 픽셀 아트 편집 프롬프트 로드 (캐릭터와 얼굴 정보 전달)
+            prompt = self.prompt_manager.get_pixel_art_prompt(character_name, face_name)
             
             # Gemini API 호출
             log_api_request(self.logger, "Gemini", "generate_content", "픽셀 아트 편집 요청 시작")
@@ -132,7 +134,7 @@ class GeminiImageProcessor:
             return None
     
     def create_artistic_merge(self, base_character: Union[str, Image.Image], reference_photo: Union[str, Image.Image], 
-                            style: str = "natural") -> Optional[Image.Image]:
+                            style: str = "natural", character_name: str = None, face_name: str = None) -> Optional[Image.Image]:
         """
         픽셀 아트 캐릭터를 참고 사진의 스타일로 예술적으로 편집
         
@@ -140,9 +142,11 @@ class GeminiImageProcessor:
             base_character: 기본 픽셀 아트 캐릭터 이미지
             reference_photo: 스타일 참고용 사진
             style: 편집 스타일 (현재는 사용하지 않음, 프롬프트 고정)
+            character_name: 캐릭터 이름 (프롬프트 선택용)
+            face_name: 얼굴 모양 이름 (프롬프트 선택용)
             
         Returns:
             PIL.Image.Image: 편집된 픽셀 아트 캐릭터 또는 None (실패 시)
         """
         # merge_images 메서드를 직접 호출 (동일한 기능)
-        return self.merge_images(base_character, reference_photo, style)
+        return self.merge_images(base_character, reference_photo, style, character_name, face_name)

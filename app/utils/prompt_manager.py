@@ -12,12 +12,35 @@ class PromptManager:
         self.image_prompt_dir = self.prompt_dir / 'image'
         self.video_prompt_dir = self.prompt_dir / 'video'
     
-    def get_pixel_art_prompt(self) -> str:
-        """픽셀 아트 편집 프롬프트를 반환합니다."""
-        yaml_path = self.image_prompt_dir / 'pixel_art_editing.yaml'
-        with open(yaml_path, 'r', encoding='utf-8') as file:
-            data = yaml.safe_load(file)
-        return data['base_prompt'].strip()
+    def get_pixel_art_prompt(self, character_name: str = None, face_name: str = None) -> str:
+        """
+        픽셀 아트 편집 프롬프트를 반환합니다.
+        캐릭터와 얼굴 조합에 맞는 프롬프트를 찾거나 기본 프롬프트를 반환합니다.
+        
+        Args:
+            character_name: 캐릭터 이름
+            face_name: 얼굴 모양 이름
+            
+        Returns:
+            str: 프롬프트 내용
+        """
+        # 캐릭터와 얼굴이 모두 제공된 경우 조합별 프롬프트 찾기
+        if character_name and face_name:
+            combination_prompt_file = self.image_prompt_dir / f'{character_name}_{face_name}_editing.yaml'
+            if combination_prompt_file.exists():
+                with open(combination_prompt_file, 'r', encoding='utf-8') as file:
+                    data = yaml.safe_load(file)
+                return data['base_prompt'].strip()
+        
+        # 기본 프롬프트 (첫 번째 발견된 *_editing.yaml 파일 사용)
+        editing_files = list(self.image_prompt_dir.glob('*_editing.yaml'))
+        if editing_files:
+            with open(editing_files[0], 'r', encoding='utf-8') as file:
+                data = yaml.safe_load(file)
+            return data['base_prompt'].strip()
+        
+        # 아무 프롬프트도 없으면 기본 메시지 반환
+        return "Edit the pixel art character in the style of the reference image."
     
     # 동영상 프롬프트 관련 메서드들
     def get_available_video_prompts(self) -> Dict[str, str]:

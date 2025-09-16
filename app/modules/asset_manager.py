@@ -192,6 +192,20 @@ class AssetManager:
         """얼굴 모양 이미지 로드 (호환성 유지)"""
         return self.get_asset("files/face_image", face_name, output_type="image")
     
+    def get_char_face_combination(self, character_name: str, face_name: str) -> Optional[Image.Image]:
+        """
+        캐릭터와 얼굴 조합으로 char_face_image에서 조합 이미지를 찾습니다.
+        
+        Args:
+            character_name: 캐릭터 이름
+            face_name: 얼굴 모양 이름
+            
+        Returns:
+            Optional[Image.Image]: 조합 이미지 또는 None
+        """
+        combination_name = f"{character_name}_{face_name}"
+        return self.get_asset("files/char_face_image", combination_name, output_type="image")
+    
     def clear_cache(self, directory: str = None) -> None:
         """
         캐시를 지웁니다.
