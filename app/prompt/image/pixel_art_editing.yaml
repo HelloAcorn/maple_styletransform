@@ -1,0 +1,7 @@
+base_prompt: |
+  Edit the base pixel art character.
+  Do not redraw or replace the character.
+  Keep the original face and body exactly the same.
+  Only overlay clothing and hairstyle from the person in the photo
+  Keep the same 8-bit pixel art style with tiny square pixels, bold outlines, and bright flat colors.
+  Make sure this is an edit of the existing sprite, not a new character.

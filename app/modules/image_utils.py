@@ -20,8 +20,8 @@ class ImageUtils:
     def create_directories():
         """필요한 디렉토리 생성"""
         directories = [
-            "app/static/uploads",
-            "app/static/merged_images"
+            "files/uploads",
+            "files/merged_images"
         ]
         
         log_function_call(ImageUtils.logger, "create_directories")
@@ -31,7 +31,7 @@ class ImageUtils:
             ImageUtils.logger.debug(f"디렉토리 생성/확인: {directory}")
     
     @staticmethod
-    def save_uploaded_file(uploaded_file, save_dir: str = "app/static/uploads") -> str:
+    def save_uploaded_file(uploaded_file, save_dir: str = "files/uploads") -> str:
         """
         업로드된 파일을 저장
         
@@ -56,7 +56,7 @@ class ImageUtils:
         return file_path
     
     @staticmethod
-    def save_pil_image(image: Image.Image, save_dir: str = "app/static/merged_images", 
+    def save_pil_image(image: Image.Image, save_dir: str = "files/merged_images", 
                       filename: Optional[str] = None) -> str:
         """
         PIL Image 객체를 파일로 저장
@@ -185,30 +185,3 @@ class ImageUtils:
                     print(f"파일 삭제 실패: {file_path}, 오류: {str(e)}")
 
 
-def display_image_info(image: Image.Image, title: str = "이미지 정보"):
-    """
-    Streamlit에서 이미지 정보를 표시하는 헬퍼 함수
-    
-    Args:
-        image: PIL Image 객체
-        title: 표시할 제목
-    """
-    info = ImageUtils.get_image_info(image)
-    
-    st.subheader(title)
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.write(f"**크기:** {info['width']} x {info['height']}")
-        st.write(f"**모드:** {info['mode']}")
-    
-    with col2:
-        st.write(f"**포맷:** {info.get('format', 'Unknown')}")
-        
-        # 파일 크기 계산 (대략적)
-        import io
-        img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format='PNG')
-        size_bytes = len(img_byte_arr.getvalue())
-        size_mb = size_bytes / (1024 * 1024)
-        st.write(f"**예상 크기:** {size_mb:.2f} MB")

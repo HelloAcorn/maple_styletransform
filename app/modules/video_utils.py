@@ -19,7 +19,7 @@ class VideoUtils:
     def create_video_directories():
         """동영상 저장을 위한 디렉토리 생성"""
         directories = [
-            "app/static/videos"
+            "files/videos"
         ]
         
         log_function_call(VideoUtils.logger, "create_video_directories")
@@ -45,7 +45,7 @@ class VideoUtils:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"generated_video_{timestamp}_{uuid.uuid4().hex[:8]}.mp4"
         
-        return os.path.join("app/static/videos", filename)
+        return os.path.join("files/videos", filename)
     
     @staticmethod
     def get_video_info(video_path: str) -> dict:
@@ -75,7 +75,7 @@ class VideoUtils:
             return {"error": f"정보 추출 실패: {str(e)}"}
     
     @staticmethod
-    def cleanup_old_videos(directory: str = "app/static/videos", max_files: int = 20):
+    def cleanup_old_videos(directory: str = "files/videos", max_files: int = 20):
         """
         오래된 동영상 파일들을 정리
         
@@ -122,40 +122,15 @@ class VideoUtils:
         if duration < 2 or duration > 10:
             return False, "동영상 길이는 2-10초 사이여야 합니다."
         
-        # 해상도 검사
+        # 해상도 검사 - Seedance Pro 1.0 설정
         supported_resolutions = [
-            "1024x576", "576x1024", "768x768", 
-            "1280x720", "720x1280"
+            "480p"  # 480p (9:16 비율) 고정
         ]
         
         if resolution not in supported_resolutions:
             return False, f"지원되지 않는 해상도입니다. 지원 해상도: {', '.join(supported_resolutions)}"
         
         return True, ""
-
-
-def display_video_info(video_path: str, title: str = "동영상 정보"):
-    """
-    Streamlit에서 동영상 정보를 표시하는 헬퍼 함수
-    
-    Args:
-        video_path: 동영상 파일 경로
-        title: 표시할 제목
-    """
-    info = VideoUtils.get_video_info(video_path)
-    
-    if "error" in info:
-        st.error(f"❌ {info['error']}")
-        return
-    
-    st.subheader(title)
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.write(f"**파일 크기:** {info['size_mb']} MB")
-    
-    with col2:
-        st.write(f"**형식:** MP4")
 
 
 def display_video_generation_progress(current_step: int, total_steps: int, 
@@ -172,14 +147,3 @@ def display_video_generation_progress(current_step: int, total_steps: int,
     st.progress(progress)
     st.text(f"🎬 {step_description} ({current_step}/{total_steps})")
 
-
-def create_video_generation_prompt_templates() -> dict:
-    """동영상 생성을 위한 프롬프트 템플릿 반환"""
-    return {
-        "natural": "자연스럽고 부드러운 움직임으로 생동감 있는 동영상을 만들어주세요.",
-        "cinematic": "영화적이고 드라마틱한 분위기로 동영상을 생성해주세요.",
-        "smooth": "매우 부드럽고 유연한 움직임으로 동영상을 만들어주세요.",
-        "dynamic": "역동적이고 활기찬 움직임으로 동영상을 생성해주세요.",
-        "artistic": "예술적이고 창의적인 표현으로 동영상을 만들어주세요.",
-        "realistic": "현실적이고 자연스러운 움직임으로 동영상을 생성해주세요."
-    }

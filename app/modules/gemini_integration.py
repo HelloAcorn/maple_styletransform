@@ -1,5 +1,5 @@
 """
-Gemini 2.0 Flash Image API 통합 모듈
+Gemini 2.5 Flash Image Preview API 통합 모듈
 """
 import os
 import io
@@ -11,10 +11,11 @@ from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 from app.core.config import APIConfig
 from app.utils.logger import setup_logger, log_function_call, log_api_request, log_error
+from app.utils.prompt_manager import PromptManager
 
 
 class GeminiImageProcessor:
-    """Gemini 2.0 Flash Image 모델을 사용한 이미지 처리 클래스"""
+    """Gemini 2.5 Flash Image Preview 모델을 사용한 이미지 처리 클래스"""
     
     def __init__(self, api_key: str):
         """
@@ -25,14 +26,15 @@ class GeminiImageProcessor:
         """
         self.logger = setup_logger('gemini_integration')
         self.api_key = api_key
+        self.prompt_manager = PromptManager()
         
         log_function_call(self.logger, "GeminiImageProcessor.__init__", api_key_length=len(api_key) if api_key else 0)
         
         try:
             genai.configure(api_key=api_key)
-            # Gemini 2.0 Flash 모델 (이미지 생성 지원)
-            self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
-            self.logger.info("Gemini API 클라이언트 초기화 완료")
+            # Gemini 2.5 Flash Image Preview 모델 (이미지 생성 지원)
+            self.model = genai.GenerativeModel('gemini-2.5-flash-image-preview')
+            self.logger.info("Gemini 2.5 Flash Image Preview API 클라이언트 초기화 완료")
         except Exception as e:
             log_error(self.logger, e, "Gemini API 클라이언트 초기화")
         
@@ -63,39 +65,42 @@ class GeminiImageProcessor:
             "data": image_data
         }
     
-    def merge_images(self, image1: Union[str, Image.Image], image2: Union[str, Image.Image], 
-                    prompt: str = "이 두 이미지를 자연스럽게 하나로 합쳐주세요. 두 이미지의 요소들이 조화롭게 어우러지도록 해주세요.") -> Optional[Image.Image]:
+    def merge_images(self, base_character: Union[str, Image.Image], reference_photo: Union[str, Image.Image], 
+                    style: str = "natural") -> Optional[Image.Image]:
         """
-        두 이미지를 Gemini 2.0 Flash 모델을 사용하여 하나로 합침
+        픽셀 아트 캐릭터를 참고 사진의 스타일로 편집
         
         Args:
-            image1: 첫 번째 이미지
-            image2: 두 번째 이미지
-            prompt: 이미지 합성을 위한 프롬프트
+            base_character: 기본 픽셀 아트 캐릭터 이미지
+            reference_photo: 스타일 참고용 사진
+            style: 편집 스타일 (현재는 사용하지 않음, 프롬프트 고정)
             
         Returns:
-            PIL.Image.Image: 합성된 이미지 또는 None (실패 시)
+            PIL.Image.Image: 편집된 픽셀 아트 캐릭터 또는 None (실패 시)
         """
         log_function_call(self.logger, "merge_images", 
-                         image1_type=type(image1).__name__, 
-                         image2_type=type(image2).__name__,
-                         prompt_length=len(prompt))
+                         base_character_type=type(base_character).__name__, 
+                         reference_photo_type=type(reference_photo).__name__,
+                         style=style)
         
         try:
-            self.logger.info("이미지 합성 시작")
+            self.logger.info("픽셀 아트 캐릭터 편집 시작")
             
             # 이미지를 API 형태로 변환
             self.logger.debug("이미지를 API 형태로 변환 중")
-            image1_part = self._image_to_parts(image1)
-            image2_part = self._image_to_parts(image2)
+            base_character_part = self._image_to_parts(base_character)
+            reference_photo_part = self._image_to_parts(reference_photo)
+            
+            # YAML에서 픽셀 아트 편집 프롬프트 로드
+            prompt = self.prompt_manager.get_pixel_art_prompt()
             
             # Gemini API 호출
-            log_api_request(self.logger, "Gemini", "generate_content", "요청 시작")
+            log_api_request(self.logger, "Gemini", "generate_content", "픽셀 아트 편집 요청 시작")
             response = self.model.generate_content(
                 [
                     prompt,
-                    image1_part,
-                    image2_part
+                    base_character_part,
+                    reference_photo_part
                 ],
                 safety_settings={
                     HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
@@ -114,35 +119,30 @@ class GeminiImageProcessor:
                         self.logger.info(f"파트 {i}에서 이미지 데이터 추출 성공")
                         image_data = part.inline_data.data
                         result_image = Image.open(io.BytesIO(image_data))
-                        self.logger.info(f"합성된 이미지 크기: {result_image.size}")
+                        self.logger.info(f"편집된 픽셀 아트 크기: {result_image.size}")
                         return result_image
+                    elif hasattr(part, 'text'):
+                        self.logger.debug(f"파트 {i}에서 텍스트 응답: {part.text[:100]}...")
             
             self.logger.warning("응답에서 이미지 데이터를 찾을 수 없음")
             return None
             
         except Exception as e:
-            log_error(self.logger, e, "이미지 합성")
+            log_error(self.logger, e, "픽셀 아트 캐릭터 편집")
             return None
     
-    def create_artistic_merge(self, image1: Union[str, Image.Image], image2: Union[str, Image.Image], 
+    def create_artistic_merge(self, base_character: Union[str, Image.Image], reference_photo: Union[str, Image.Image], 
                             style: str = "natural") -> Optional[Image.Image]:
         """
-        특정 스타일로 두 이미지를 예술적으로 합성
+        픽셀 아트 캐릭터를 참고 사진의 스타일로 예술적으로 편집
         
         Args:
-            image1: 첫 번째 이미지
-            image2: 두 번째 이미지
-            style: 합성 스타일 ("natural", "artistic", "seamless", "collage")
+            base_character: 기본 픽셀 아트 캐릭터 이미지
+            reference_photo: 스타일 참고용 사진
+            style: 편집 스타일 (현재는 사용하지 않음, 프롬프트 고정)
             
         Returns:
-            PIL.Image.Image: 합성된 이미지 또는 None (실패 시)
+            PIL.Image.Image: 편집된 픽셀 아트 캐릭터 또는 None (실패 시)
         """
-        style_prompts = {
-            "natural": "이 두 이미지를 자연스럽고 현실적으로 하나로 합쳐주세요.",
-            "artistic": "이 두 이미지를 예술적이고 창의적으로 합성하여 하나의 작품으로 만들어주세요.",
-            "seamless": "이 두 이미지를 경계가 보이지 않게 완전히 자연스럽게 합쳐주세요.",
-            "collage": "이 두 이미지를 콜라주 스타일로 조화롭게 배치하여 하나의 이미지로 만들어주세요."
-        }
-        
-        prompt = style_prompts.get(style, style_prompts["natural"])
-        return self.merge_images(image1, image2, prompt)
+        # merge_images 메서드를 직접 호출 (동일한 기능)
+        return self.merge_images(base_character, reference_photo, style)

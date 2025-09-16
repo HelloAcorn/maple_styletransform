@@ -25,15 +25,21 @@ class BytePlusVideoGenerator:
         
         log_function_call(self.logger, "BytePlusVideoGenerator.__init__")
         
-        self.api_key = APIConfig.BYTEPLUS_API_KEY
+        # API 키가 로드되지 않은 경우 명시적으로 로드
+        if not APIConfig.BYTEPLUS_API_KEY:
+            APIConfig.load_api_keys()
+            self.logger.info("API 키 파일에서 BytePlus API 키 로드")
+        
+        self.api_key = APIConfig.get_byteplus_api_key()
         self.base_url = APIConfig.BYTEPLUS_BASE_URL
         self.headers = APIConfig.get_byteplus_headers()
         
         # API 엔드포인트
-        self.create_video_url = f"{self.base_url}/api/v1/video_generation"
-        self.query_video_url = f"{self.base_url}/api/v1/video_generation"
+        self.create_video_url = f"{self.base_url}/api/v3/contents/generations/tasks"
+        self.query_video_url = f"{self.base_url}/api/v3/contents/generations/tasks"
         
         self.logger.info(f"BytePlus API 클라이언트 초기화 완료 - Base URL: {self.base_url}")
+        self.logger.info(f"API 키 상태: {'✅ 로드됨' if self.api_key else '❌ 없음'}")
         
     def _image_to_base64(self, image: Union[str, Image.Image]) -> str:
         """
@@ -59,11 +65,22 @@ class BytePlusVideoGenerator:
             
         return base64.b64encode(image_data).decode('utf-8')
     
+    def _extract_video_url(self, status_info: Dict[str, Any]) -> Optional[str]:
+        """
+        응답 구조에서 video URL 추출
+        """
+        # "content" 객체에서 "video_url" 확인 (v3 API 표준)
+        content = status_info.get("content")
+        if content and "video_url" in content:
+            return content["video_url"]
+        
+        return None
+    
     def create_video_task(self, image: Union[str, Image.Image], 
                          prompt: str = "자연스럽고 부드러운 움직임으로 생동감 있는 동영상을 만들어주세요.",
                          duration: int = 4,
                          fps: int = 24,
-                         resolution: str = "1024x576") -> Optional[str]:
+                         resolution: str = "480p") -> Optional[str]:
         """
         동영상 생성 작업 생성
         
@@ -91,31 +108,36 @@ class BytePlusVideoGenerator:
             self.logger.debug("이미지를 Base64로 변환 중")
             image_base64 = self._image_to_base64(image)
             
-            req_key = f"video_gen_{int(time.time())}"
+            # 이미지를 data URL 형식으로 변환
+            url_image = f"data:image/png;base64,{image_base64}"
             
-            # API 요청 데이터
+            # 프롬프트에 설정 파라미터 추가 (테스트 코드 방식)
+            enhanced_prompt = f"{prompt} --resolution 480p --duration {duration} --ratio 9:16 --camerafixed true"
+            
+            # API 요청 데이터 - v3 API 형식
             request_data = {
-                "model": "Seedance-1.0-lite",  # Seedance 1.0 모델
-                "req_key": req_key,
-                "prompt": prompt,
-                "image": image_base64,
-                "cfg_scale": 7.5,
-                "seed": -1,
-                "duration": max(APIConfig.VIDEO_DURATION_MIN, 
-                               min(duration, APIConfig.VIDEO_DURATION_MAX)),
-                "fps": fps,
-                "resolution": resolution,
-                "format": APIConfig.VIDEO_OUTPUT_FORMAT
+                "model": "seedance-1-0-pro-250528",  # 테스트 코드와 동일한 모델명
+                "content": [
+                    {
+                        "type": "text",
+                        "text": enhanced_prompt
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": url_image}
+                    }
+                ]
             }
             
-            self.logger.info(f"동영상 생성 요청 - req_key: {req_key}, duration: {request_data['duration']}초")
+            self.logger.info(f"동영상 생성 요청 - 모델: {request_data['model']}, duration: {duration}초")
             
-            # API 호출
+            # API 호출 (최신 헤더 사용)
+            headers = APIConfig.get_byteplus_headers()
             log_api_request(self.logger, "BytePlus", self.create_video_url, "요청 시작")
             response = requests.post(
                 self.create_video_url,
-                headers=self.headers,
-                json=request_data,
+                headers=headers,
+                data=json.dumps(request_data),  # json 대신 data 사용
                 timeout=30
             )
             
@@ -123,13 +145,12 @@ class BytePlusVideoGenerator:
             
             if response.status_code == 200:
                 result = response.json()
-                if result.get("code") == 0:
-                    task_id = result.get("data", {}).get("task_id")
+                task_id = result.get("id")  # v3 API는 직접 id 반환
+                if task_id:
                     self.logger.info(f"동영상 생성 작업 생성 성공 - Task ID: {task_id}")
                     return task_id
                 else:
-                    error_msg = result.get('message', 'Unknown error')
-                    self.logger.error(f"API 오류: {error_msg}")
+                    self.logger.error(f"API 응답에서 task ID를 찾을 수 없음: {result}")
                     return None
             else:
                 self.logger.error(f"HTTP 오류: {response.status_code}, {response.text}")
@@ -150,22 +171,19 @@ class BytePlusVideoGenerator:
             dict: 작업 상태 정보 또는 None (실패 시)
         """
         try:
-            # API 호출
+            # API 호출 (최신 헤더 사용)
+            headers = APIConfig.get_byteplus_headers()
             response = requests.get(
                 f"{self.query_video_url}/{task_id}",
-                headers=self.headers,
+                headers=headers,
                 timeout=30
             )
             
             if response.status_code == 200:
                 result = response.json()
-                if result.get("code") == 0:
-                    return result.get("data")
-                else:
-                    print(f"API 오류: {result.get('message', 'Unknown error')}")
-                    return None
+                return result  # v3 API는 직접 결과 반환
             else:
-                print(f"HTTP 오류: {response.status_code}, {response.text}")
+                self.logger.error(f"HTTP 오류: {response.status_code}, {response.text}")
                 return None
                 
         except Exception as e:
@@ -195,16 +213,15 @@ class BytePlusVideoGenerator:
             
             status = task_info.get("status", "").lower()
             
-            if status == "success":
+            if status == "succeeded":  # v3 API는 "succeeded" 사용
                 return task_info
-            elif status in ["failed", "error"]:
+            elif status in ["failed", "canceled"]:
                 print(f"동영상 생성 실패: {task_info.get('error_message', 'Unknown error')}")
                 return None
-            elif status in ["processing", "pending", "running"]:
+            elif status in ["processing", "pending", "running", "queued"]:
                 # 진행 중인 경우 계속 대기
                 time.sleep(check_interval)
             else:
-                print(f"알 수 없는 상태: {status}")
                 time.sleep(check_interval)
         
         print(f"동영상 생성 타임아웃 ({max_wait_time}초)")
@@ -269,15 +286,15 @@ class BytePlusVideoGenerator:
                 return None
             
             # 3. 동영상 URL 추출
-            video_url = task_result.get("video_url")
+            video_url = self._extract_video_url(task_result)
             if not video_url:
-                print("동영상 URL을 찾을 수 없습니다.")
+                self.logger.error("동영상 URL을 찾을 수 없습니다.")
                 return None
             
             # 4. 저장 경로 설정
             if save_path is None:
                 timestamp = int(time.time())
-                save_path = f"app/static/videos/generated_video_{timestamp}.mp4"
+                save_path = f"files/videos/generated_video_{timestamp}.mp4"
             
             # 5. 동영상 다운로드
             if self.download_video(video_url, save_path):
@@ -290,13 +307,9 @@ class BytePlusVideoGenerator:
             return None
     
     def get_supported_resolutions(self) -> list:
-        """지원되는 해상도 목록 반환"""
+        """지원되는 해상도 목록 반환 - 480p 9:16 고정"""
         return [
-            "1024x576",  # 16:9 가로
-            "576x1024",  # 9:16 세로
-            "768x768",   # 1:1 정사각형
-            "1280x720",  # HD
-            "720x1280"   # HD 세로
+            "480p",  # 480p 해상도 (9:16 비율 고정)
         ]
     
     def get_supported_durations(self) -> list:
