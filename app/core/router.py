@@ -53,9 +53,6 @@ def discover_pages(package_name: str = "app.pages") -> List[PageProtocol]:
         package = importlib.import_module(package_name)
         package_path = Path(package.__file__).parent
         
-        logger.info(f"페이지 발견 시작: {package_path}")
-        logger.info(f"패키지 경로 존재 확인: {package_path.exists()}")
-        
         # 모든 모듈 순회
         modules_found = []
         for _, module_name, _ in pkgutil.iter_modules([str(package_path)]):
@@ -67,7 +64,6 @@ def discover_pages(package_name: str = "app.pages") -> List[PageProtocol]:
             try:
                 # 모듈 import
                 full_module_name = f"{package_name}.{module_name}"
-                logger.info(f"모듈 로드 시도: {full_module_name}")
                 module = importlib.import_module(full_module_name)
                 
                 # page 인스턴스 찾기
@@ -81,8 +77,6 @@ def discover_pages(package_name: str = "app.pages") -> List[PageProtocol]:
             except Exception as e:
                 logger.error(f"모듈 로드 실패 {module_name}: {e}")
         
-        logger.info(f"발견된 모듈들: {modules_found}")
-                
     except ImportError as e:
         logger.error(f"패키지 import 실패 {package_name}: {e}")
         import traceback
