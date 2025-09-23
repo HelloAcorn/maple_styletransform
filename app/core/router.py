@@ -54,30 +54,39 @@ def discover_pages(package_name: str = "app.pages") -> List[PageProtocol]:
         package_path = Path(package.__file__).parent
         
         logger.info(f"페이지 발견 시작: {package_path}")
+        logger.info(f"패키지 경로 존재 확인: {package_path.exists()}")
         
         # 모든 모듈 순회
+        modules_found = []
         for _, module_name, _ in pkgutil.iter_modules([str(package_path)]):
+            modules_found.append(module_name)
             if module_name.startswith('_'):
+                logger.debug(f"언더스코어로 시작하는 모듈 건너뜀: {module_name}")
                 continue
             
             try:
                 # 모듈 import
                 full_module_name = f"{package_name}.{module_name}"
+                logger.info(f"모듈 로드 시도: {full_module_name}")
                 module = importlib.import_module(full_module_name)
                 
                 # page 인스턴스 찾기
                 if hasattr(module, 'page'):
                     page = module.page
                     pages.append(page)
-                    logger.info(f"페이지 로드: {page.spec.name} from {module_name}")
+                    logger.info(f"페이지 로드 성공: {page.spec.name} from {module_name}")
                 else:
-                    logger.debug(f"'page' 인스턴스 없음: {module_name}")
+                    logger.warning(f"'page' 인스턴스 없음: {module_name}")
                     
             except Exception as e:
                 logger.error(f"모듈 로드 실패 {module_name}: {e}")
+        
+        logger.info(f"발견된 모듈들: {modules_found}")
                 
     except ImportError as e:
         logger.error(f"패키지 import 실패 {package_name}: {e}")
+        import traceback
+        logger.error(f"스택 트레이스: {traceback.format_exc()}")
     
     # order 순으로 정렬
     pages.sort(key=lambda p: (p.spec.order, p.spec.name))

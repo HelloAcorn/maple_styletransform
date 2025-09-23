@@ -18,6 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 애플리케이션 코드 복사
 COPY . .
 
+# Python 경로 설정
+ENV PYTHONPATH=/app
+
 # 필요한 디렉토리 생성
 RUN mkdir -p logs files/uploads files/merged_images
 

@@ -9,15 +9,15 @@ from dotenv import load_dotenv
 
 # 현재 디렉토리를 Python 경로에 추가
 current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_dir)
+sys.path.insert(0, current_dir)
+
+# 환경 변수 로드
+load_dotenv()
 
 from app.core.router import Router
 from app.core.context import get_or_create_context
 from app.core.config import APIConfig
 from app.utils.logger import setup_logger
-
-# 환경 변수 로드
-load_dotenv()
 
 # 페이지 설정
 st.set_page_config(
@@ -102,10 +102,15 @@ def main():
     
     # 라우터 초기화 (세션당 한 번만)
     if not st.session_state.router_initialized:
-        st.session_state.router = Router()
-        st.session_state.router.load_pages("app.pages")
-        st.session_state.router_initialized = True
-        pass  # 라우터 초기화 완룜
+        try:
+            st.session_state.router = Router()
+            st.session_state.router.load_pages("app.pages")
+            st.session_state.router_initialized = True
+            logger.info("라우터 초기화 완료")
+        except Exception as e:
+            logger.error(f"라우터 초기화 실패: {e}")
+            st.error(f"페이지 로딩 실패: {e}")
+            return
     
     # 라우터를 통해 탭 렌더링
     router = st.session_state.router
