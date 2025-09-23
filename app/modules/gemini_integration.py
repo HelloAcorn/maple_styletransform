@@ -34,7 +34,6 @@ class GeminiImageProcessor:
             genai.configure(api_key=api_key)
             # Gemini 2.5 Flash Image Preview 모델 (이미지 생성 지원)
             self.model = genai.GenerativeModel('gemini-2.5-flash-image-preview')
-            self.logger.info("Gemini 2.5 Flash Image Preview API 클라이언트 초기화 완료")
         except Exception as e:
             log_error(self.logger, e, "Gemini API 클라이언트 초기화")
         
@@ -66,7 +65,7 @@ class GeminiImageProcessor:
         }
     
     def merge_images(self, base_character: Union[str, Image.Image], reference_photo: Union[str, Image.Image], 
-                    style: str = "natural", character_name: str = None, face_name: str = None) -> Optional[Image.Image]:
+                    style: str = "natural", character_name: str = None) -> Optional[Image.Image]:
         """
         픽셀 아트 캐릭터를 참고 사진의 스타일로 편집
         
@@ -75,7 +74,6 @@ class GeminiImageProcessor:
             reference_photo: 스타일 참고용 사진
             style: 편집 스타일 (현재는 사용하지 않음, 프롬프트 고정)
             character_name: 캐릭터 이름 (프롬프트 선택용)
-            face_name: 얼굴 모양 이름 (프롬프트 선택용)
             
         Returns:
             PIL.Image.Image: 편집된 픽셀 아트 캐릭터 또는 None (실패 시)
@@ -93,11 +91,11 @@ class GeminiImageProcessor:
             base_character_part = self._image_to_parts(base_character)
             reference_photo_part = self._image_to_parts(reference_photo)
             
-            # YAML에서 픽셀 아트 편집 프롬프트 로드 (캐릭터와 얼굴 정보 전달)
-            prompt = self.prompt_manager.get_pixel_art_prompt(character_name, face_name)
+            # YAML에서 픽셀 아트 편집 프롬프트 로드 (캐릭터 정보 전달)
+            prompt = self.prompt_manager.get_pixel_art_prompt(character_name)
             
             # Gemini API 호출
-            log_api_request(self.logger, "Gemini", "generate_content", "픽셀 아트 편집 요청 시작")
+            log_api_request(self.logger, "Gemini", "generate_content", "픽셀 아트 편집 요청 시작")  
             response = self.model.generate_content(
                 [
                     prompt,
@@ -115,13 +113,10 @@ class GeminiImageProcessor:
             
             # 응답에서 이미지 추출
             if response.parts:
-                self.logger.info(f"응답에서 {len(response.parts)}개의 파트 발견")
                 for i, part in enumerate(response.parts):
                     if hasattr(part, 'inline_data') and part.inline_data:
-                        self.logger.info(f"파트 {i}에서 이미지 데이터 추출 성공")
                         image_data = part.inline_data.data
                         result_image = Image.open(io.BytesIO(image_data))
-                        self.logger.info(f"편집된 픽셀 아트 크기: {result_image.size}")
                         return result_image
                     elif hasattr(part, 'text'):
                         self.logger.debug(f"파트 {i}에서 텍스트 응답: {part.text[:100]}...")
@@ -134,7 +129,7 @@ class GeminiImageProcessor:
             return None
     
     def create_artistic_merge(self, base_character: Union[str, Image.Image], reference_photo: Union[str, Image.Image], 
-                            style: str = "natural", character_name: str = None, face_name: str = None) -> Optional[Image.Image]:
+                            style: str = "natural", character_name: str = None) -> Optional[Image.Image]:
         """
         픽셀 아트 캐릭터를 참고 사진의 스타일로 예술적으로 편집
         
@@ -143,10 +138,9 @@ class GeminiImageProcessor:
             reference_photo: 스타일 참고용 사진
             style: 편집 스타일 (현재는 사용하지 않음, 프롬프트 고정)
             character_name: 캐릭터 이름 (프롬프트 선택용)
-            face_name: 얼굴 모양 이름 (프롬프트 선택용)
             
         Returns:
             PIL.Image.Image: 편집된 픽셀 아트 캐릭터 또는 None (실패 시)
         """
         # merge_images 메서드를 직접 호출 (동일한 기능)
-        return self.merge_images(base_character, reference_photo, style, character_name, face_name)
+        return self.merge_images(base_character, reference_photo, style, character_name)

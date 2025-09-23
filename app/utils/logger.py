@@ -76,11 +76,8 @@ def setup_logger(name: str, level=logging.INFO) -> logging.Logger:
     _streamlit_logger.addHandler(file_handler)
     _streamlit_logger.addHandler(console_handler)
     
-    # 초기 로그 메시지
-    _streamlit_logger.info("=" * 60)
-    _streamlit_logger.info(f"AI 멀티미디어 스튜디오 로깅 시스템 시작")
-    _streamlit_logger.info(f"로그 파일: {log_filename}")
-    _streamlit_logger.info("=" * 60)
+    # 초기 로그 메시지 제거 (불필요한 로그 출력 방지)
+    pass
     
     # 컴포넌트별 자식 로거 반환
     return _streamlit_logger.getChild(name)

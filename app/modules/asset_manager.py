@@ -57,7 +57,6 @@ class AssetManager:
         if use_cache:
             self._cached_images[directory] = images
         
-        self.logger.info(f"디렉토리 {directory}에서 {len(images)}개의 이미지를 발견했습니다.")
         return images
     
     def get_options_from_directory(self, directory: str) -> List[str]:
@@ -97,7 +96,6 @@ class AssetManager:
         elif output_type == "image":
             try:
                 image = Image.open(image_path)
-                self.logger.info(f"asset 이미지 로드 성공: {asset_name}")
                 return image
             except Exception as e:
                 self.logger.error(f"asset 이미지 로드 실패 ({asset_name}): {str(e)}")
@@ -167,44 +165,39 @@ class AssetManager:
         """캐릭터 미리보기 (호환성 유지)"""
         self.display_preview("files/character_image", character_name, caption)
     
-    def display_face_selector(self, key: str = "face_selector") -> Optional[str]:
-        """얼굴 모양 선택기 (호환성 유지)"""
-        return self.display_selector("files/face_image", "얼굴 모양을 선택하세요:", key, "미리 준비된 얼굴 모양 중에서 선택하세요.")
+    def display_pixel_character_selector(self, key: str = "pixel_character_selector") -> Optional[str]:
+        """픽셀 캐릭터 선택기"""
+        return self.display_selector("files/pixel_character_image", "픽셀 캐릭터를 선택하세요:", key, "미리 준비된 픽셀 캐릭터 중에서 선택하세요.")
     
-    def display_face_preview(self, face_name: str, caption: str = "선택된 얼굴 모양") -> None:
-        """얼굴 모양 미리보기 (호환성 유지)"""
-        self.display_preview("files/face_image", face_name, caption)
+    def display_pixel_character_preview(self, character_name: str, caption: str = "선택된 픽셀 캐릭터") -> None:
+        """픽셀 캐릭터 미리보기"""
+        self.display_preview("files/pixel_character_image", character_name, caption)
     
     # 편의 메서드들 (경로 기반)
     def get_character_options(self) -> List[str]:
         """캐릭터 옵션 (호환성 유지)"""
         return self.get_options_from_directory("files/character_image")
     
-    def get_face_options(self) -> List[str]:
-        """얼굴 모양 옵션 (호환성 유지)"""
-        return self.get_options_from_directory("files/face_image")
+    def get_pixel_character_options(self) -> List[str]:
+        """픽셀 캐릭터 옵션 ([캐릭터]_픽셀.png 파일들에서 캐릭터명만 추출)"""
+        pixel_files = self.get_options_from_directory("files/pixel_character_image")
+        # "[캐릭터]_픽셀" 형식에서 캐릭터명만 추출
+        character_names = []
+        for file_name in pixel_files:
+            if file_name.endswith("_픽셀"):
+                character_name = file_name.replace("_픽셀", "")
+                character_names.append(character_name)
+        return character_names
     
     def load_character_image(self, character_name: str) -> Optional[Image.Image]:
         """캐릭터 이미지 로드 (호환성 유지)"""
         return self.get_asset("files/character_image", character_name, output_type="image")
     
-    def load_face_image(self, face_name: str) -> Optional[Image.Image]:
-        """얼굴 모양 이미지 로드 (호환성 유지)"""
-        return self.get_asset("files/face_image", face_name, output_type="image")
+    def load_pixel_character_image(self, character_name: str) -> Optional[Image.Image]:
+        """픽셀 캐릭터 이미지 로드 ([캐릭터]_픽셀.png 형식)"""
+        pixel_character_name = f"{character_name}_픽셀"
+        return self.get_asset("files/pixel_character_image", pixel_character_name, output_type="image")
     
-    def get_char_face_combination(self, character_name: str, face_name: str) -> Optional[Image.Image]:
-        """
-        캐릭터와 얼굴 조합으로 char_face_image에서 조합 이미지를 찾습니다.
-        
-        Args:
-            character_name: 캐릭터 이름
-            face_name: 얼굴 모양 이름
-            
-        Returns:
-            Optional[Image.Image]: 조합 이미지 또는 None
-        """
-        combination_name = f"{character_name}_{face_name}"
-        return self.get_asset("files/char_face_image", combination_name, output_type="image")
     
     def clear_cache(self, directory: str = None) -> None:
         """

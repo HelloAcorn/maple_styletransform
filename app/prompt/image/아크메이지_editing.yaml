@@ -1,0 +1,8 @@
+base_prompt: |
+  Edit the base 2d pixel character.
+  Do not redraw or replace the entire character. this must be treated strictly as an edit of the existing 2d pixel sprite.
+  Keep the original body exactly the same, and strictly maintain the body proportions.
+  The 2d pixel character must keep its staff, icy-blue magical effects, and headband exactly as they are.
+  Replace the original face with the person’s facial features, including hairstyle, eyes, nose, and mouth, faithfully adapted into the 2d pixel art style.
+  Convert the real person’s outfit and hairstyle into the same 2d pixel art style with tiny square pixels, bold outlines, and bright flat colors.
+  Ensure this is an edit of the existing 2d pixel sprite, not a new character.

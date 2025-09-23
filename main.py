@@ -87,11 +87,9 @@ def initialize_session_state():
 def main():
     """메인 애플리케이션"""
     logger = setup_logger('main')
-    logger.info("AI 멀티미디어 스튜디오 시작")
     
     # API 키 파일에서 로드
     APIConfig.load_api_keys()
-    logger.info("API 키 파일에서 로드 완료")
     
     # 세션 상태 초기화
     initialize_session_state()
@@ -107,7 +105,7 @@ def main():
         st.session_state.router = Router()
         st.session_state.router.load_pages("app.pages")
         st.session_state.router_initialized = True
-        logger.info(f"라우터 초기화 완료: {len(st.session_state.router.pages)}개 페이지 로드")
+        pass  # 라우터 초기화 완룜
     
     # 라우터를 통해 탭 렌더링
     router = st.session_state.router

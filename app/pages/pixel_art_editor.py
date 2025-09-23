@@ -6,7 +6,10 @@ import streamlit as st
 from PIL import Image
 from datetime import datetime
 import io
-from typing import Dict, Any
+import zipfile
+from typing import Dict, Any, List
+import concurrent.futures
+import threading
 
 from app.core.router import PageSpec
 from app.modules.gemini_integration import GeminiImageProcessor
@@ -45,16 +48,15 @@ class PixelArtEditorPage:
         
         # 페이지 제목
         st.subheader("🎨 픽셀 아트 캐릭터 합성")
-        st.info("📸 셀카, 🎭 캐릭터, 😊 얼굴모양을 선택해주세요! (현재는 캡틴만 가능)")
+        st.info("📸 셀카와 🎭 캐릭터를 선택해주세요!")
         
         
-        # 3열 레이아웃 생성 (셀카 | 캐릭터선택 | 얼굴모양)
-        upload_layout = layout_factory.create_three_column(1, 1, 1)
+        # 2열 레이아웃 생성 (셀카 | 캐릭터선택)
+        upload_layout = layout_factory.create_two_column(1, 1)
         
         # 변수 초기화
         uploaded_selfie = None
         selected_character = None
-        selected_face_shape = None
         
         # 첫 번째 열: 셀카 업로드
         with upload_layout.use_slot("left"):
@@ -75,36 +77,29 @@ class PixelArtEditorPage:
                     st.error("❌ 유효하지 않은 이미지 파일입니다.")
         
         # 두 번째 열: 캐릭터 선택
-        with upload_layout.use_slot("center"):
+        with upload_layout.use_slot("right"):
             st.markdown("### 🎭 캐릭터 선택")
             selected_character = self.asset_manager.display_character_selector(key="character_select")
             
             if selected_character:
                 self.asset_manager.display_character_preview(selected_character, "선택된 캐릭터")
         
-        # 세 번째 열: 얼굴 모양 선택
-        with upload_layout.use_slot("right"):
-            st.markdown("### 😊 얼굴 모양")
-            selected_face_shape = self.asset_manager.display_face_selector(key="face_shape_select")
-            
-            if selected_face_shape:
-                self.asset_manager.display_face_preview(selected_face_shape, "선택된 얼굴 모양")
         
         # 스타일 정보 표시
         st.markdown('</div>', unsafe_allow_html=True)
         
         # 이미지 처리
-        self._handle_three_column_input(
-            uploaded_selfie, selected_character, selected_face_shape, 
+        self._handle_two_column_input(
+            uploaded_selfie, selected_character, 
             api_key, layout_factory
         )
     
-    def _handle_three_column_input(self, selfie_file, character_name: str, face_shape: str, api_key: str, layout_factory) -> None:
-        """3열 입력 처리"""
+    def _handle_two_column_input(self, selfie_file, character_name: str, api_key: str, layout_factory) -> None:
+        """2열 입력 처리"""
         # 필수 입력 체크
-        if not selfie_file or not character_name or not face_shape:
-            if selfie_file or character_name or face_shape:
-                st.info("📋 모든 항목을 선택해주세요: 셀카, 캐릭터, 얼굴모양")
+        if not selfie_file or not character_name:
+            if selfie_file or character_name:
+                st.info("📋 모든 항목을 선택해주세요: 셀카, 캐릭터")
             return
         
         st.divider()
@@ -117,7 +112,7 @@ class PixelArtEditorPage:
                     st.error("❌ Gemini API 키가 설정되지 않았습니다.")
                     st.info("💡 API 키를 설정 파일에 추가해주세요.")
                 else:
-                    self._process_three_column_images(selfie_file, character_name, face_shape, api_key)
+                    self._process_two_column_images(selfie_file, character_name, api_key)
     
     def _handle_image_upload(self, file1, file2, api_key: str, layout_factory) -> None:
         """이미지 업로드 처리 (기존 호환성 유지)"""
@@ -162,8 +157,50 @@ class PixelArtEditorPage:
                     else:
                         self._process_images(image1, image2, api_key)
     
-    def _process_three_column_images(self, selfie_file, character_name: str, face_shape: str, api_key: str) -> None:
-        """3열 입력으로 이미지 처리"""
+    def _generate_single_image(self, processor: GeminiImageProcessor, selfie_image: Image.Image, 
+                              pixel_character_image: Image.Image, enhanced_style: str, 
+                              character_name: str, index: int) -> Dict[str, Any]:
+        """단일 이미지 생성 (병렬 처리용)"""
+        try:
+            self.logger.info(f"이미지 생성 시작 #{index + 1}")
+            # 각 스레드에서 이미지의 안전한 복사본을 사용
+            # BytesIO를 통해 완전히 독립적인 이미지 생성
+            
+            # 셀카 이미지 복사본 생성
+            selfie_buffer = io.BytesIO()
+            selfie_image.save(selfie_buffer, format='PNG')
+            selfie_buffer.seek(0)
+            selfie_copy = Image.open(selfie_buffer)
+            selfie_copy.load()
+            
+            # 픽셀 캐릭터 이미지 복사본 생성
+            pixel_buffer = io.BytesIO()
+            pixel_character_image.save(pixel_buffer, format='PNG')
+            pixel_buffer.seek(0)
+            pixel_copy = Image.open(pixel_buffer)
+            pixel_copy.load()
+            
+            merged_image = processor.create_artistic_merge(
+                selfie_copy, pixel_copy, enhanced_style, character_name
+            )
+            if merged_image:
+                saved_path = ImageUtils.save_pil_image(merged_image)
+                self.logger.info(f"이미지 생성 완료 #{index + 1}")
+                return {
+                    'success': True,
+                    'image': merged_image,
+                    'path': saved_path,
+                    'index': index
+                }
+            else:
+                self.logger.warning(f"이미지 생성 실패 #{index + 1}")
+                return {'success': False, 'index': index}
+        except Exception as e:
+            self.logger.error(f"이미지 생성 오류 #{index + 1}: {str(e)}")
+            return {'success': False, 'index': index, 'error': str(e)}
+    
+    def _process_two_column_images(self, selfie_file, character_name: str, api_key: str) -> None:
+        """2열 입력으로 4장의 이미지를 동시에 처리"""
         ImageUtils.create_directories()
         
         progress_bar = st.progress(0)
@@ -178,58 +215,101 @@ class PixelArtEditorPage:
                 st.error("❌ 유효하지 않은 셀카 파일입니다.")
                 return
             
+            # 파일 포인터를 처음으로 되돌리고 이미지 열기
+            selfie_file.seek(0)
             selfie_image = Image.open(selfie_file)
+            # 이미지를 완전히 로드 (lazy loading 방지)
+            selfie_image.load()
+            # RGB로 변환 (RGBA나 다른 모드일 경우를 대비)
+            if selfie_image.mode not in ('RGB', 'L'):
+                selfie_image = selfie_image.convert('RGB')
             selfie_image = ImageUtils.resize_image_if_needed(selfie_image, 1024)
             
-            # 2. 캐릭터+얼굴 조합 이미지 로드
-            status_text.text(f"🎭 캐릭터+얼굴 조합 이미지 로드 중... ({character_name}_{face_shape})")
-            progress_bar.progress(20)
+            # 2. 픽셀 캐릭터 이미지 로드 (pixel_character_image 폴더에서)
+            status_text.text(f"🎭 픽셀 캐릭터 이미지 로드 중... ({character_name})")
+            progress_bar.progress(15)
             
-            combination_image = self.asset_manager.get_char_face_combination(character_name, face_shape)
-            if not combination_image:
-                st.error(f"❌ 조합 이미지를 찾을 수 없습니다: {character_name}_{face_shape}.png")
-                st.info("char_face_image 폴더에 해당 조합 이미지가 있는지 확인해주세요.")
+            # pixel_character_image 폴더에서 픽셀화된 캐릭터 이미지 로드
+            pixel_character_image = self.asset_manager.load_pixel_character_image(character_name)
+            if not pixel_character_image:
+                st.error(f"❌ 픽셀 캐릭터 이미지를 찾을 수 없습니다: {character_name}_픽셀.png")
+                st.info("픽셀 캐릭터 에셋이 아직 준비되지 않았습니다. pixel_character_image 폴더에 해당 캐릭터의 픽셀화된 이미지를 추가해주세요.")
+                available_characters = self.asset_manager.get_pixel_character_options()
+                if available_characters:
+                    st.warning(f"현재 사용 가능한 픽셀 캐릭터: {', '.join(available_characters)}")
+                else:
+                    st.warning("아직 사용 가능한 픽셀 캐릭터가 없습니다.")
                 return
             
-            combination_image = ImageUtils.resize_image_if_needed(combination_image, 1024)
+            # 이미지 복사본 생성 및 RGB 변환 (멀티스레드 환경에서 안전하게 사용)
+            pixel_character_image = pixel_character_image.copy()
+            # 이미지를 완전히 로드 (lazy loading 방지)
+            pixel_character_image.load()
+            if pixel_character_image.mode not in ('RGB', 'L'):
+                pixel_character_image = pixel_character_image.convert('RGB')
+            pixel_character_image = ImageUtils.resize_image_if_needed(pixel_character_image, 1024)
             
-            # 3. Gemini AI 모델 초기화
+            # 3. Gemini AI 모델 초기화 (4개의 프로세서 생성)
             status_text.text("🔧 Gemini AI 모델 초기화 중...")
-            progress_bar.progress(40)
+            progress_bar.progress(20)
             
-            processor = GeminiImageProcessor(api_key)
+            processors = [GeminiImageProcessor(api_key) for _ in range(4)]
             
-            # 4. 픽셀 아트 캐릭터 합성 (셀카 + 조합이미지)
-            status_text.text(f"🎨 픽셀 아트 캐릭터 합성 중... ({character_name}_{face_shape})")
-            progress_bar.progress(60)
+            # 4. 4장의 픽셀 아트 캐릭터 동시 합성
+            status_text.text(f"🎨 4장의 메이플스토리 캐릭터 생성 중... ({character_name})")
+            progress_bar.progress(30)
             
-            # 조합 이미지 정보를 스타일에 추가
-            enhanced_style = f"{self.default_style} (조합: {character_name}_{face_shape})"
+            # 캐릭터 정보를 스타일에 추가
+            enhanced_style = f"{self.default_style} (캐릭터: {character_name})"
             
-            # 셀카와 조합 이미지로 픽셀 아트 생성 (캐릭터와 얼굴 정보 전달)
-            merged_image = processor.create_artistic_merge(selfie_image, combination_image, enhanced_style, character_name, face_shape)
-            progress_bar.progress(80)
+            # 병렬로 4장의 이미지 생성
+            generated_images = []
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                # 4개의 작업을 동시에 제출
+                futures = []
+                for i in range(4):
+                    future = executor.submit(
+                        self._generate_single_image,
+                        processors[i], selfie_image, pixel_character_image,
+                        enhanced_style, character_name, i
+                    )
+                    futures.append(future)
+                
+                # 진행 상황 업데이트
+                completed = 0
+                for future in concurrent.futures.as_completed(futures):
+                    completed += 1
+                    progress = 30 + (completed * 15)  # 30% ~ 90%
+                    status_text.text(f"🎨 이미지 생성 중... ({completed}/4 완료)")
+                    progress_bar.progress(progress)
+                    
+                    result = future.result()
+                    if result['success']:
+                        generated_images.append(result)
             
-            if merged_image:
+            # 성공한 이미지들을 인덱스 순으로 정렬
+            generated_images.sort(key=lambda x: x['index'])
+            
+            if generated_images:
                 status_text.text("💾 결과 저장 중...")
-                saved_path = ImageUtils.save_pil_image(merged_image)
+                progress_bar.progress(95)
+                
+                status_text.text(f"✅ {len(generated_images)}장의 픽셀 아트 캐릭터 합성 완료!")
                 progress_bar.progress(100)
                 
-                status_text.text("✅ 픽셀 아트 캐릭터 합성 완료!")
-                
-                # 결과 표시 (조합 이미지 사용됨을 표시)
-                self._display_result(merged_image, f"{character_name}_{face_shape}", "조합이미지", saved_path)
+                # 결과 표시 (2x2 그리드)
+                self._display_grid_result(generated_images, character_name)
                 
                 # 오래된 파일 정리
                 ImageUtils.cleanup_old_files("files/uploads")
                 ImageUtils.cleanup_old_files("files/merged_images")
             else:
-                st.error("❌ 픽셀 아트 캐릭터 합성에 실패했습니다.")
+                st.error("❌ 모든 픽셀 아트 캐릭터 합성에 실패했습니다.")
                 
         except Exception as e:
             st.error(f"❌ 오류가 발생했습니다: {str(e)}")
             st.info("API 키가 올바른지 확인해주세요.")
-            self.logger.error(f"3열 이미지 처리 오류: {str(e)}")
+            self.logger.error(f"2열 이미지 처리 오류: {str(e)}")
         
         finally:
             progress_bar.empty()
@@ -278,8 +358,108 @@ class PixelArtEditorPage:
             progress_bar.empty()
             status_text.empty()
     
-    def _display_result(self, merged_image: Image.Image, character_name: str, face_shape: str, saved_path: str) -> None:
+    def _display_grid_result(self, generated_images: List[Dict[str, Any]], character_name: str) -> None:
         """결과 표시"""
+        st.subheader("🎉 합성 결과")
+        
+        # 2x2 그리드 레이아웃 생성
+        st.markdown("### 생성된 이미지")
+        
+        # 이미지를 2개씩 나누어서 행 생성
+        for row_idx in range(0, len(generated_images), 2):
+            cols = st.columns(2)
+            
+            # 첫 번째 열
+            if row_idx < len(generated_images):
+                with cols[0]:
+                    img_data = generated_images[row_idx]
+                    st.image(img_data['image'], caption=f"이미지 {row_idx + 1}", use_container_width=True)
+            
+            # 두 번째 열
+            if row_idx + 1 < len(generated_images):
+                with cols[1]:
+                    img_data = generated_images[row_idx + 1]
+                    st.image(img_data['image'], caption=f"이미지 {row_idx + 2}", use_container_width=True)
+        
+        st.divider()
+        
+        # 개별 다운로드 버튼들
+        st.markdown("### 📥 개별 다운로드")
+        download_cols = st.columns(4)
+        
+        for idx, img_data in enumerate(generated_images):
+            with download_cols[idx % 4]:
+                img_byte_arr = io.BytesIO()
+                img_data['image'].save(img_byte_arr, format='PNG', quality=95)
+                img_byte_arr = img_byte_arr.getvalue()
+                
+                safe_character = character_name.replace(" ", "_")
+                filename = f"pixel_{safe_character}_{idx+1}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+                
+                st.download_button(
+                    label=f"📥 이미지 {idx + 1}",
+                    data=img_byte_arr,
+                    file_name=filename,
+                    mime="image/png",
+                    key=f"download_{idx}",
+                    use_container_width=True
+                )
+        
+        # 전체 이미지 ZIP 다운로드
+        st.divider()
+        st.markdown("### 📦 전체 다운로드")
+        
+        # ZIP 파일 생성
+        zip_buffer = io.BytesIO()
+        
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for idx, img_data in enumerate(generated_images):
+                img_byte_arr = io.BytesIO()
+                img_data['image'].save(img_byte_arr, format='PNG', quality=95)
+                
+                safe_character = character_name.replace(" ", "_")
+                filename = f"pixel_{safe_character}_{idx+1}.png"
+                
+                zip_file.writestr(filename, img_byte_arr.getvalue())
+        
+        zip_buffer.seek(0)
+        
+        st.download_button(
+            label="📦 모든 이미지 다운로드 (ZIP)",
+            data=zip_buffer.getvalue(),
+            file_name=f"pixel_{character_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
+            mime="application/zip",
+            type="primary",
+            use_container_width=True
+        )
+        
+        # 세션 상태에 저장 (호환성 유지)
+        if 'processed_images' not in st.session_state:
+            st.session_state.processed_images = []
+        
+        if 'synthesized_images' not in st.session_state:
+            st.session_state.synthesized_images = []
+        
+        # 모든 생성된 이미지를 세션에 저장
+        for img_data in generated_images:
+            st.session_state.synthesized_images.append({
+                'image': img_data['image'],
+                'character': character_name,
+                'style': self.default_style,
+                'path': img_data['path'],
+                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'filename': f"pixel_character_{character_name}_{img_data['index']+1}.png"
+            })
+            
+            st.session_state.processed_images.append({
+                'character': character_name,
+                'style': self.default_style,
+                'path': img_data['path'],
+                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            })
+    
+    def _display_result(self, merged_image: Image.Image, character_name: str, saved_path: str) -> None:
+        """결과 표시 (단일 이미지용 - 기존 호환성 유지)"""
         st.subheader("🎉 합성 결과")
         
         # 결과 이미지 표시
@@ -290,10 +470,9 @@ class PixelArtEditorPage:
         merged_image.save(img_byte_arr, format='PNG', quality=95)
         img_byte_arr = img_byte_arr.getvalue()
         
-        # 파일명에 캐릭터와 얼굴모양 정보 포함
+        # 파일명에 캐릭터 정보 포함
         safe_character = character_name.replace(" ", "_")
-        safe_face_shape = face_shape.replace(" ", "_")
-        filename = f"pixel_character_{safe_character}_{safe_face_shape}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        filename = f"pixel_character_{safe_character}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
         
         st.download_button(
             label="📥 캐릭터 다운로드",
@@ -318,17 +497,15 @@ class PixelArtEditorPage:
         st.session_state.synthesized_images.append({
             'image': merged_image,  # PIL Image 객체
             'character': character_name,
-            'face_shape': face_shape,
             'style': self.default_style,
             'path': saved_path,
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'filename': f"pixel_character_{character_name}_{face_shape}.png"
+            'filename': f"pixel_character_{character_name}.png"
         })
         
         # 기존 processed_images에도 추가 (호환성 유지)
         st.session_state.processed_images.append({
             'character': character_name,
-            'face_shape': face_shape,
             'style': self.default_style,
             'path': saved_path,
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
