@@ -40,11 +40,11 @@ steps:
       - '--cpu'
       - '2'
       - '--timeout'
-      - '300'
+      - '90'
       - '--concurrency'
-      - '80'
+      - '5'
       - '--max-instances'
-      - '10'
+      - '1'
 
 images:
   - 'gcr.io/$PROJECT_ID/maple-styletransform:$COMMIT_SHA'
