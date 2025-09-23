@@ -132,54 +132,23 @@ maple_styletransform/
 
 ## 🚀 Google Cloud Run 배포
 
-### 1. 사전 준비
-```bash
-# Google Cloud SDK 설치 및 로그인
-gcloud auth login
-gcloud config set project YOUR_PROJECT_ID
+### 1. 저장소 연결을 통한 자동 배포 (권장)
 
-# Docker 인증 설정
-gcloud auth configure-docker
-```
+#### GitHub/GitLab 저장소 연결
+1. Google Cloud Console → Cloud Run 이동
+2. "Create Service" → "Deploy from source" 선택
+3. GitHub/GitLab 저장소 연결
+4. `cloudbuild.yaml` 파일이 자동으로 감지됨
+5. 환경 변수에서 `GEMINI_API_KEY` 설정
 
-### 2. 환경 변수 설정
-```bash
-# env.example을 참고하여 .env 파일 생성
-cp env.example .env
+#### 자동 배포 흐름
+- 코드 푸시 → Cloud Build 트리거 → 자동 빌드 & 배포
+- `main` 브랜치 푸시 시 자동으로 프로덕션 배포
 
-# API 키 설정
-export GEMINI_API_KEY="your_gemini_api_key_here"
-```
-
-### 3. 자동 배포 (권장)
-```bash
-# 배포 스크립트 실행
-./deploy.sh YOUR_PROJECT_ID asia-northeast3
-```
-
-### 4. 수동 배포
-```bash
-# Docker 이미지 빌드
-docker build -t gcr.io/YOUR_PROJECT_ID/maple-styletransform .
-
-# Container Registry에 푸시
-docker push gcr.io/YOUR_PROJECT_ID/maple-styletransform
-
-# Cloud Run에 배포
-gcloud run deploy maple-styletransform \
-  --image gcr.io/YOUR_PROJECT_ID/maple-styletransform \
-  --platform managed \
-  --region asia-northeast3 \
-  --allow-unauthenticated \
-  --memory 2Gi \
-  --cpu 2 \
-  --timeout 300
-```
-
-### 5. Cloud Build를 통한 CI/CD
-```bash
-# Cloud Build 트리거 생성
-gcloud builds submit --config cloudbuild.yaml .
+### 2. Cloud Build 트리거 설정
+```yaml
+# cloudbuild.yaml 파일이 모든 배포 설정을 관리
+# 저장소 연결 시 자동으로 실행됩니다
 ```
 
 ### 배포 설정
