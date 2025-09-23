@@ -1,9 +1,19 @@
 # Google Cloud Build 설정 파일
 steps:
-  # Docker 이미지 빌드
+  # 이전 이미지를 캐시로 pull (빌드 속도 향상)
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker pull gcr.io/$PROJECT_ID/maple-styletransform:latest || exit 0
+
+  # Docker 이미지 빌드 (캐시 활용)
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
+      - '--cache-from'
+      - 'gcr.io/$PROJECT_ID/maple-styletransform:latest'
       - '-t'
       - 'gcr.io/$PROJECT_ID/maple-styletransform:$COMMIT_SHA'
       - '-t'
@@ -52,3 +62,7 @@ images:
 
 options:
   logging: CLOUD_LOGGING_ONLY
+  # 머신 타입을 더 강력하게 설정 (빌드 속도 향상)
+  machineType: 'E2_HIGHCPU_8'
+  # 디스크 크기 설정
+  diskSizeGb: 100
