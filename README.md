@@ -130,6 +130,65 @@ maple_styletransform/
 
 이 프로젝트는 MIT 라이선스 하에 배포됩니다.
 
+## 🚀 Google Cloud Run 배포
+
+### 1. 사전 준비
+```bash
+# Google Cloud SDK 설치 및 로그인
+gcloud auth login
+gcloud config set project YOUR_PROJECT_ID
+
+# Docker 인증 설정
+gcloud auth configure-docker
+```
+
+### 2. 환경 변수 설정
+```bash
+# env.example을 참고하여 .env 파일 생성
+cp env.example .env
+
+# API 키 설정
+export GEMINI_API_KEY="your_gemini_api_key_here"
+```
+
+### 3. 자동 배포 (권장)
+```bash
+# 배포 스크립트 실행
+./deploy.sh YOUR_PROJECT_ID asia-northeast3
+```
+
+### 4. 수동 배포
+```bash
+# Docker 이미지 빌드
+docker build -t gcr.io/YOUR_PROJECT_ID/maple-styletransform .
+
+# Container Registry에 푸시
+docker push gcr.io/YOUR_PROJECT_ID/maple-styletransform
+
+# Cloud Run에 배포
+gcloud run deploy maple-styletransform \
+  --image gcr.io/YOUR_PROJECT_ID/maple-styletransform \
+  --platform managed \
+  --region asia-northeast3 \
+  --allow-unauthenticated \
+  --memory 2Gi \
+  --cpu 2 \
+  --timeout 300
+```
+
+### 5. Cloud Build를 통한 CI/CD
+```bash
+# Cloud Build 트리거 생성
+gcloud builds submit --config cloudbuild.yaml .
+```
+
+### 배포 설정
+- **메모리**: 2GB (AI 모델 처리를 위해)
+- **CPU**: 2 vCPU (병렬 처리를 위해)
+- **타임아웃**: 300초 (이미지 생성 시간 고려)
+- **동시성**: 80 (동시 요청 처리)
+- **최대 인스턴스**: 10개
+
 ## 🤝 기여
 
 버그 리포트, 기능 제안, 풀 리퀘스트를 환영합니다!
@@ -137,5 +196,5 @@ maple_styletransform/
 ---
 
 **개발자**: AI 이미지 합성 전문팀  
-**버전**: 1.0.0  
+**버전**: 2.0.0  
 **최종 업데이트**: 2024년
