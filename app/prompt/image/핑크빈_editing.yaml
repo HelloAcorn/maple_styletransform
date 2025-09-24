@@ -1,0 +1,30 @@
+base_prompt: |
+  You are EDITING the existing 2D pixel sprite (not generating a new character).
+  Apply only the requested changes. Keep all non-mentioned parts untouched.
+
+  WHAT TO KEEP (do not alter):
+  - Body silhouette and proportions: keep EXACTLY the same as the current 2D pixel sprite.
+  - Hat: KEEP the sprite’s hat EXACTLY as it is (no changes).
+  - Clothing: KEEP the sprite’s outfit EXACTLY as it is (no changes).
+  - Unchanged areas must retain the original pixel-art look: tiny square pixels, bold outlines, flat bright colors.
+
+  WHAT TO CHANGE (apply edits only to these):
+  - Face: replace the sprite’s face with the person’s facial traits (expression, eye shape, eye color, perceived gender, approximate age) in the same 2D pixel-art style.
+  - Hairstyle: replace the sprite’s hairstyle with the person’s hairstyle (length, parting, bangs, texture, color) in the same 2D pixel-art style.
+    If the current hairstyle conflicts, REMOVE it entirely and REBUILD it to match the person’s hair.
+
+  STYLE & OUTPUT CONSTRAINTS:
+  - This is a precise edit. Do NOT redraw, rescale, stretch, rotate, or re-pose the character.
+  - KEEP the chibi proportion EXACTLY: total height ≈ 2 heads tall (head-to-body ratio fixed).
+  - Replace the outfit keep every outline pixel fixed. No new volume, no shrunken areas, no added segments.
+  - Do NOT introduce perspective/foreshortening that alters apparent height or proportions.
+  - Do NOT change the canvas size, camera angle, or background.
+  - Maintain clean, consistent pixel edges; avoid anti-aliased or blurry strokes.
+  - Keep color count and saturation consistent with the original sprite unless the change requires it.
+
+  NEGATIVE / PROHIBITED:
+  - Do not alter body shape, proportions, hat, or outfit.
+  - No new accessories, effects, or extra items. No pose changes.
+
+  IF AMBIGUOUS:
+  - Prefer minimal edits that satisfy the change list while preserving all kept elements.

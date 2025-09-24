@@ -176,3 +176,8 @@ pyrightconfig.json
 # ignore files
 files/merged_images/*.png
 files/videos/*.mp4
+
+# Test folder - track only specific files and ignore generated results
+test/result/
+!test/make_sample_image.py
+!test/input_Image/

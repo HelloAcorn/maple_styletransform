@@ -124,9 +124,9 @@ class SampleImageGenerator:
                     self.logger.error(f"{input_image_name}+{character_name} - 이미지 복사 실패: {copy_error}")
                     return {'success': False, 'index': index, 'error': f'이미지 복사 실패: {copy_error}'}
                 
-                # 이미지 생성 (입력 이미지 + 픽셀 캐릭터) - 픽셀 이미지를 나중에 입력
+                # 이미지 생성 (픽셀 캐릭터 + 입력 이미지)
                 result_image = self.processor.create_artistic_merge(
-                    input_copy, pixel_copy, "natural", character_name
+                    pixel_copy, input_copy, "natural", character_name
                 )
                 
                 if result_image:

@@ -21,7 +21,10 @@ base_prompt: |
 
   STYLE & OUTPUT CONSTRAINTS:
   - This is a precise edit. Do NOT redraw, rescale, stretch, rotate, or re-pose the character.
-  - Do NOT change the canvas size, camera angle, or background unless explicitly requested.
+  - KEEP the chibi proportion EXACTLY: total height ≈ 2 heads tall (head-to-body ratio fixed).
+  - Replace the outfit keep every outline pixel fixed. No new volume, no shrunken areas, no added segments.
+  - Do NOT introduce perspective/foreshortening that alters apparent height or proportions.
+  - Do NOT change the canvas size, camera angle, or background.
   - Maintain clean, consistent pixel edges; avoid anti-aliased or blurry strokes.
   - Keep color count and saturation consistent with the original sprite unless the change requires it.
 

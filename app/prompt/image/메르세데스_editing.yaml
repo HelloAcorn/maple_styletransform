@@ -6,8 +6,8 @@ base_prompt: |
   - Body silhouette and proportions: keep EXACTLY the same as the current 2D pixel sprite.
   - Props and unique features: keep the elf ears exactly as they are.
   - Skin tone: strictly maintain the original 2D pixel character’s white skin tone.
+  - Weapons: KEEP the dual weapons held in both hands exactly as they are.
   - Unchanged areas must retain the original pixel-art look: tiny square pixels, bold outlines, flat bright colors.
-
 
   WHAT TO CHANGE (apply edits only to these):
   - Clothing: replace the 2D pixel character’s clothing with human clothes. Render it in the same 2D pixel-art style.
@@ -18,15 +18,17 @@ base_prompt: |
     Do not remove or reposition the elf ears; integrate hair around them naturally.
     Use tiny square pixels, bold outlines, and flat bright colors.
 
-
   STYLE & OUTPUT CONSTRAINTS:
   - This is a precise edit. Do NOT redraw, rescale, stretch, rotate, or re-pose the character.
-  - Do NOT change the canvas size, camera angle, or background unless explicitly requested.
+  - KEEP the chibi proportion EXACTLY: total height ≈ 2 heads tall (head-to-body ratio fixed).
+  - Replace the outfit keep every outline pixel fixed. No new volume, no shrunken areas, no added segments.
+  - Do NOT introduce perspective/foreshortening that alters apparent height or proportions.
+  - Do NOT change the canvas size, camera angle, or background.
   - Maintain clean, consistent pixel edges; avoid anti-aliased or blurry strokes.
   - Keep color count and saturation consistent with the original sprite unless the change requires it.
 
   NEGATIVE / PROHIBITED:
-  - Do not alter body shape, proportions, dual bows, elf ears.
+  - Do not alter body shape, proportions, elf ears, or the dual weapons.
   - No new accessories, effects, or extra items. No pose changes.
 
   IF AMBIGUOUS:
