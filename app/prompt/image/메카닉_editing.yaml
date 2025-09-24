@@ -1,8 +1,34 @@
 base_prompt: |
-  Edit the base 2d pixel character.
-  Do not redraw or replace the entire character. this must be treated strictly as an edit of the existing 2d pixel sprite.
-  Keep the original body exactly the same, and strictly maintain the body proportions.
-  The 2d pixel character must keep its mechanical suit, robotic arms, and headgear exactly as they are.
-  Replace the original face with the person’s facial features, including hairstyle, eyes, nose, and mouth, faithfully adapted into the 2d pixel art style.
-  Convert the real person’s outfit and hairstyle into the same 2d pixel art style with tiny square pixels, bold outlines, and bright flat colors.
-  Ensure this is an edit of the existing 2d pixel sprite, not a new character.
+  You are EDITING the existing 2D pixel sprite (not generating a new character).
+  Apply only the requested changes. Keep all non-mentioned parts untouched.
+
+  WHAT TO KEEP (do not alter):
+  - Body silhouette and proportions: keep EXACTLY the same as the current 2D pixel sprite.
+  - Mechanical suit: keep the entire robotic suit, including arms, weapons, body frame, and mechanical details.
+  - Headgear and cockpit area must remain unchanged.
+  - Unchanged areas must retain the original pixel-art look: tiny square pixels, bold outlines, flat bright colors.
+
+  WHAT TO CHANGE (apply edits only to these):
+  - Clothing: replace the pilot’s visible clothing with human attire, rendered in the same 2D pixel-art style.
+  - Face & hairstyle: replace the original face with the person’s traits—convert eye color, eye shape,
+    perceived gender, and age into 2D pixel art. The hairstyle must strictly follow the person’s actual
+    hairstyle (length, parting, bangs, texture, color) in the same 2D pixel style.
+    If the current sprite hairstyle conflicts or differs significantly from the person’s hairstyle,
+    REMOVE the sprite hair entirely and REBUILD it to match the person’s hairstyle.
+    Apply these changes only to the pilot’s face and hair, keeping the head size and silhouette unchanged.
+    Integrate the hair naturally with the headgear and cockpit without altering the mech design or headgear.
+    Use tiny square pixels, bold outlines, and flat bright colors.
+
+  STYLE & OUTPUT CONSTRAINTS:
+  - This is a precise edit. Do NOT redraw, rescale, stretch, rotate, or re-pose the character.
+  - Do NOT change the canvas size, camera angle, or background unless explicitly requested.
+  - Maintain clean, consistent pixel edges; avoid anti-aliased or blurry strokes.
+  - Keep color count and saturation consistent with the original sprite unless the change requires it.
+
+  NEGATIVE / PROHIBITED:
+  - Do not alter the mech suit, robotic arms, weapons, or headgear structure.
+  - No new accessories, effects, or extra items. No pose changes.
+  - Do not restyle the mech or apply any global restyle.
+
+  IF AMBIGUOUS:
+  - Prefer minimal edits that satisfy the change list while preserving all kept elements.

@@ -1,8 +1,32 @@
 base_prompt: |
-  Edit the base 2d pixel character.
-  Do not redraw or replace the entire character. this must be treated strictly as an edit of the existing 2d pixel sprite.
-  Keep the original body exactly the same, and strictly maintain the body proportions.
-  The 2d pixel character must keep its cane, ornate hat with feather, and flowing cape exactly as they are.
-  Replace the original face with the person’s facial features, including hairstyle, eyes, nose, and mouth, faithfully adapted into the 2d pixel art style.
-  Convert the real person’s outfit and hairstyle into the same 2d pixel art style with tiny square pixels, bold outlines, and bright flat colors.
+  You are EDITING the existing 2D pixel sprite (not generating a new character).
+  Apply only the requested changes. Keep all non-mentioned parts untouched.
 
+  WHAT TO KEEP (do not alter):
+  - Body silhouette and proportions: keep EXACTLY the same as the current 2D pixel sprite.
+  - Props: keep the cane and the ornate hat-with-feather unchanged.
+  - Unchanged areas must retain the original pixel-art look: tiny square pixels, bold outlines, flat bright colors.
+
+  WHAT TO CHANGE (apply edits only to these):
+  - Clothing: replace the 2D pixel character’s clothing with human clothes. Render it in the same 2D pixel-art style.
+  - Face & hairstyle: replace the original face with the specified person’s traits—convert the person’s
+    eye color and eye shape, perceived gender, and approximate age into 2D pixel art.
+    The hairstyle must strictly follow the person’s actual hairstyle (length, parting, bangs, texture, color)
+    in the same 2D pixel style. If the current sprite hairstyle conflicts or differs significantly, REMOVE the
+    sprite hair entirely and REBUILD it to match the person’s hairstyle.
+    Apply these changes only to the face and hair, keeping the head size and cranial silhouette unchanged.
+    Integrate the hair under the existing ornate hat-with-feather; do not alter the hat or its position.
+    Use tiny square pixels, bold outlines, and flat bright colors.
+
+  STYLE & OUTPUT CONSTRAINTS:
+  - This is a precise edit. Do NOT redraw, rescale, stretch, rotate, or re-pose the character.
+  - Do NOT change the canvas size, camera angle, or background unless explicitly requested.
+  - Maintain clean, consistent pixel edges; avoid anti-aliased or blurry strokes.
+  - Keep color count and saturation consistent with the original sprite unless the change requires it.
+
+  NEGATIVE / PROHIBITED:
+  - Do not alter body shape, proportions, cane, or hat-with-feather.
+  - No new accessories, effects, or extra items. No pose changes.
+
+  IF AMBIGUOUS:
+  - Prefer minimal edits that satisfy the change list while preserving all kept elements.
