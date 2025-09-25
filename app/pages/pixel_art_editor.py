@@ -155,6 +155,8 @@ class PixelArtEditorPage:
                         st.error("❌ Gemini API 키가 설정되지 않았습니다.")
                         st.info("💡 API 키를 설정 파일에 추가해주세요.")
                     else:
+                        # make_sample_image.py와 동일한 순서: 픽셀 캐릭터 → 참고 사진
+                        # image1이 픽셀 캐릭터, image2가 참고 사진이라고 가정
                         self._process_images(image1, image2, api_key)
     
     def _generate_single_image(self, processor: GeminiImageProcessor, selfie_image: Image.Image, 
@@ -181,7 +183,7 @@ class PixelArtEditorPage:
             pixel_copy.load()
             
             merged_image = processor.create_artistic_merge(
-                selfie_copy, pixel_copy, enhanced_style, character_name
+                pixel_copy, selfie_copy, enhanced_style, character_name
             )
             if merged_image:
                 saved_path = ImageUtils.save_pil_image(merged_image)
@@ -315,8 +317,8 @@ class PixelArtEditorPage:
             progress_bar.empty()
             status_text.empty()
     
-    def _process_images(self, image1: Image.Image, image2: Image.Image, api_key: str) -> None:
-        """이미지 처리"""
+    def _process_images(self, pixel_character_image: Image.Image, reference_photo: Image.Image, api_key: str) -> None:
+        """이미지 처리 (픽셀 캐릭터 + 참고 사진 순서)"""
         ImageUtils.create_directories()
         
         progress_bar = st.progress(0)
@@ -331,7 +333,7 @@ class PixelArtEditorPage:
             status_text.text("🎨 픽셀 아트 캐릭터 합성 중... (시간이 다소 걸릴 수 있습니다)")
             progress_bar.progress(40)
             
-            merged_image = processor.create_artistic_merge(image1, image2, self.default_style)
+            merged_image = processor.create_artistic_merge(pixel_character_image, reference_photo, self.default_style)
             progress_bar.progress(80)
             
             if merged_image:
