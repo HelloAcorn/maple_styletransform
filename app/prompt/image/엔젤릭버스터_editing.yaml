@@ -4,7 +4,7 @@ base_prompt: |
 
   WHAT TO KEEP (do not alter):
   - Body silhouette and proportions: keep EXACTLY the same as the current 2D pixel sprite.
-  - Unique items: KEEP the pink hair color, the wing-shaped hairpin, and the microphone exactly as they are.
+  - Unique items: KEEP the pink hair color, the wing-shaped hairpin, and the heart shape stick exactly as they are.
   - Unchanged areas must retain the original pixel-art look: tiny square pixels, bold outlines, flat bright colors.
 
   WHAT TO CHANGE (apply edits only to these):
@@ -18,7 +18,7 @@ base_prompt: |
 
   STYLE & OUTPUT CONSTRAINTS:
   - This is a precise edit. Do NOT redraw, rescale, stretch, rotate, or re-pose the character.
-  - KEEP the chibi proportion EXACTLY: total height ≈ 2 heads tall (head-to-body ratio fixed).
+  - Lock the sprite to the original pixel height and head-to-body ratio (exactly 2.00 heads; no scaling or vertical shift, 0-px tolerance).
   - Replace the outfit keep every outline pixel fixed. No new volume, no shrunken areas, no added segments.
   - Do NOT introduce perspective/foreshortening that alters apparent height or proportions.
   - Do NOT change the canvas size, camera angle, or background.
@@ -26,7 +26,7 @@ base_prompt: |
   - Keep color count and saturation consistent with the original sprite unless the change requires it.
 
   NEGATIVE / PROHIBITED:
-  - Do not alter body shape, proportions, pink hair color, wing-shaped hairpin, or microphone.
+  - Do not alter body shape, proportions, pink hair color, wing-shaped hairpin, or heart shape stick.
   - No new accessories, effects, or extra items. No pose changes.
 
   IF AMBIGUOUS:

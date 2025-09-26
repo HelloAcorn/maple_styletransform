@@ -4,7 +4,7 @@ base_prompt: |
 
   WHAT TO KEEP (do not alter):
   - Body silhouette and proportions: keep EXACTLY the same as the current 2D pixel sprite.
-  - Unique items: keep the sword, the yellow glowing sword aura, and the cape exactly as they are.
+  - Unique items: keep the sword exactly as it is.
   - Unchanged areas must retain the original pixel-art look: tiny square pixels, bold outlines, flat bright colors.
 
   WHAT TO CHANGE (apply edits only to these):
@@ -13,14 +13,13 @@ base_prompt: |
     perceived gender, and approximate age into 2D pixel art. The hairstyle must strictly follow the person’s
     actual hairstyle (length, parting, bangs, texture, color) in the same 2D pixel style.
     If the current sprite hairstyle conflicts or differs significantly from the person’s hairstyle,
-    REMOVE the sprite hair entirely and REBUILD it to match the person’s hairstyle.
-    Apply these changes only to the face and hair, keeping the head size and silhouette unchanged.
-    Integrate the hairstyle naturally with the cape and overall design without altering the sword, aura, or cape.
+    Edit face/hair only; do not change head size or any body segment length, and paint strictly inside existing outlines (no outline moves/additions).
+    Integrate the hairstyle naturally with the overall design without altering the sword.
     Use tiny square pixels, bold outlines, and flat bright colors.
 
   STYLE & OUTPUT CONSTRAINTS:
   - This is a precise edit. Do NOT redraw, rescale, stretch, rotate, or re-pose the character.
-  - KEEP the chibi proportion EXACTLY: total height ≈ 2 heads tall (head-to-body ratio fixed).
+  - Lock the sprite to the original pixel height and head-to-body ratio (exactly 2.00 heads; no scaling or vertical shift, 0-px tolerance).
   - Replace the outfit keep every outline pixel fixed. No new volume, no shrunken areas, no added segments.
   - Do NOT introduce perspective/foreshortening that alters apparent height or proportions.
   - Do NOT change the canvas size, camera angle, or background.
@@ -28,7 +27,7 @@ base_prompt: |
   - Keep color count and saturation consistent with the original sprite unless the change requires it.
 
   NEGATIVE / PROHIBITED:
-  - Do not alter body shape, proportions, sword, glowing aura, or cape.
+  - Do not alter body shape, proportions, or sword.
   - No new accessories, effects, or extra items. No pose changes.
 
   IF AMBIGUOUS:
