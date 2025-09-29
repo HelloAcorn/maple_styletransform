@@ -14,7 +14,7 @@ class APIConfig:
     
     # API 키들 (파일에서 로드)
     BYTEPLUS_API_KEY: Optional[str] = None
-    GEMINI_API_KEY: Optional[str] = None
+    GOOGLE_API_KEY: Optional[str] = None
     
     # BytePlus ModelArk API 설정
     BYTEPLUS_BASE_URL = "https://ark.ap-southeast.bytepluses.com"
@@ -35,11 +35,11 @@ class APIConfig:
     def load_api_keys(cls):
         """환경 변수에서 우선 로드, 없으면 파일에서 로드"""
         # 1. 환경 변수에서 먼저 시도
-        cls.GEMINI_API_KEY = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
+        cls.GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
         cls.BYTEPLUS_API_KEY = os.getenv('BYTEPLUS_API_KEY')
         
         # 환경 변수에서 로드되었으면 바로 리턴
-        if cls.GEMINI_API_KEY and cls.BYTEPLUS_API_KEY:
+        if cls.GOOGLE_API_KEY and cls.BYTEPLUS_API_KEY:
             print("✅ 환경 변수에서 API 키 로드 완료")
             return
         
@@ -59,28 +59,28 @@ class APIConfig:
                                 
                                 if key == 'BYTEPLUS_API_KEY' and not cls.BYTEPLUS_API_KEY:
                                     cls.BYTEPLUS_API_KEY = value
-                                elif key == 'GOOGLE_API_KEY' and not cls.GEMINI_API_KEY:
-                                    cls.GEMINI_API_KEY = value
+                                elif key == 'GOOGLE_API_KEY' and not cls.GOOGLE_API_KEY:
+                                    cls.GOOGLE_API_KEY = value
                 print("✅ 파일에서 API 키 로드 완료")
             except Exception as e:
                 print(f"⚠️ API 키 파일 로드 중 오류 발생: {e}")
         else:
             # 클라우드 환경에서는 파일이 없어도 정상
-            if not cls.GEMINI_API_KEY and not cls.BYTEPLUS_API_KEY:
+            if not cls.GOOGLE_API_KEY and not cls.BYTEPLUS_API_KEY:
                 print("⚠️ API 키를 환경 변수나 파일에서 찾을 수 없습니다.")
     
     @classmethod
     def set_gemini_api_key(cls, api_key: str):
         """Gemini API 키 설정"""
-        cls.GEMINI_API_KEY = api_key
+        cls.GOOGLE_API_KEY = api_key
     
     @classmethod
     def get_gemini_api_key(cls) -> Optional[str]:
         """Gemini API 키 반환"""
         # API 키가 없으면 환경 변수에서 다시 확인
-        if not cls.GEMINI_API_KEY:
-            cls.GEMINI_API_KEY = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
-        return cls.GEMINI_API_KEY
+        if not cls.GOOGLE_API_KEY:
+            cls.GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+        return cls.GOOGLE_API_KEY
     
     @classmethod
     def get_byteplus_api_key(cls) -> Optional[str]:
@@ -114,6 +114,6 @@ class APIConfig:
     def validate_api_keys(cls) -> dict:
         """API 키 유효성 검사"""
         return {
-            "gemini": cls.GEMINI_API_KEY is not None and len(cls.GEMINI_API_KEY) > 10,
+            "gemini": cls.GOOGLE_API_KEY is not None and len(cls.GOOGLE_API_KEY) > 10,
             "byteplus": cls.BYTEPLUS_API_KEY is not None and len(cls.BYTEPLUS_API_KEY) > 10
         }

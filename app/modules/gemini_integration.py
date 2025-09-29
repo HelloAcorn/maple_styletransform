@@ -12,6 +12,7 @@ from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from app.core.config import APIConfig
 from app.utils.logger import setup_logger, log_function_call, log_api_request, log_error
 from app.utils.prompt_manager import PromptManager
+from app.modules.llm_factory import get_llm_factory
 
 
 class GeminiImageProcessor:
@@ -84,7 +85,45 @@ class GeminiImageProcessor:
                          style=style)
         
         try:
-            self.logger.info("픽셀 아트 캐릭터 편집 시작")
+            # 🆕 새로운 LLM Factory 사용 (폴백 기능 포함)
+            self.logger.info("LLM Factory를 통한 픽셀 아트 캐릭터 편집 시작")
+            
+            # 이미지 로드
+            if isinstance(base_character, str):
+                base_character = Image.open(base_character)
+            if isinstance(reference_photo, str):
+                reference_photo = Image.open(reference_photo)
+            
+            # 프롬프트 생성
+            prompt = self.prompt_manager.get_pixel_art_prompt(character_name)
+            
+            # LLM Factory를 통한 이미지 편집 (폴백 지원)
+            factory = get_llm_factory()
+            import asyncio
+            result = asyncio.run(factory.generate_image_edit_with_fallback(
+                prompt=prompt,
+                base_image=base_character,
+                reference_image=reference_photo
+            ))
+            
+            if result:
+                self.logger.info("LLM Factory를 통한 이미지 편집 성공")
+                return result
+            else:
+                # 폴백: 기존 방식 사용
+                self.logger.info("LLM Factory 실패, 기존 방식으로 폴백")
+                return self._legacy_merge_images(base_character, reference_photo, character_name)
+                
+        except Exception as e:
+            log_error(self.logger, e, "LLM Factory 이미지 편집")
+            # 폴백: 기존 방식 사용
+            self.logger.info("LLM Factory 오류, 기존 방식으로 폴백")
+            return self._legacy_merge_images(base_character, reference_photo, character_name)
+    
+    def _legacy_merge_images(self, base_character: Image.Image, reference_photo: Image.Image, character_name: str = None) -> Optional[Image.Image]:
+        """기존 방식의 이미지 편집 (폴백용)"""
+        try:
+            self.logger.info("기존 방식으로 픽셀 아트 캐릭터 편집 시작")
             
             # 이미지를 API 형태로 변환
             self.logger.debug("이미지를 API 형태로 변환 중")
@@ -125,7 +164,7 @@ class GeminiImageProcessor:
             return None
             
         except Exception as e:
-            log_error(self.logger, e, "픽셀 아트 캐릭터 편집")
+            log_error(self.logger, e, "기존 방식 픽셀 아트 캐릭터 편집")
             return None
     
     def create_artistic_merge(self, base_character: Union[str, Image.Image], reference_photo: Union[str, Image.Image], 

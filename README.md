@@ -48,7 +48,7 @@ pip install -r requirements.txt
 
 ### 4. 애플리케이션 실행
 ```bash
-streamlit run app/streamlit.py
+streamlit run main.py
 ```
 
 ## 📁 프로젝트 구조
@@ -56,10 +56,16 @@ streamlit run app/streamlit.py
 ```
 maple_styletransform/
 ├── app/
-│   ├── streamlit.py              # 메인 Streamlit 애플리케이션
+│   ├── main.py                   # 메인 Streamlit 애플리케이션
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── config.py             # 기존 API 설정
+│   │   ├── llm_settings.py       # 🆕 LLM 설정 관리
+│   │   └── .api_key              # API 키 파일 (Git 제외)
 │   ├── modules/
 │   │   ├── __init__.py
-│   │   ├── gemini_integration.py # Gemini API 통합
+│   │   ├── llm_factory.py        # LLM 팩토리 패턴
+│   │   ├── gemini_integration.py # Gemini API 통합 (업데이트됨)
 │   │   └── image_utils.py        # 이미지 처리 유틸리티
 │   └── static/
 │       ├── uploads/              # 업로드된 이미지 저장
@@ -104,22 +110,28 @@ maple_styletransform/
 ## 🔧 기술 스택
 
 - **Frontend**: Streamlit
-- **AI Model**: Google Gemini 2.0 Flash Image
+- **AI Models**: 
+  - Google Gemini 2.5 Flash (이미지 편집)
+  - OpenAI GPT-4o (텍스트 생성, 폴백)
+  - BytePlus Seedance 1.0 (동영상 생성)
+- **LLM Framework**: LangChain (OpenAI 통합)
 - **Image Processing**: Pillow (PIL)
 - **Backend**: Python 3.8+
 
 ## 📝 API 사용량 주의사항
 
-- Gemini API는 사용량에 따라 요금이 부과될 수 있습니다
+- **Gemini API**: 이미지 편집 시 사용량에 따라 요금 부과
+- **OpenAI API**: 텍스트 생성 및 폴백 시 토큰 기반 요금 부과
 - 대용량 이미지나 복잡한 합성 작업은 처리 시간이 오래 걸릴 수 있습니다
-- API 할당량 초과 시 오류가 발생할 수 있습니다
+- API 할당량 초과 시 자동 폴백 또는 오류가 발생할 수 있습니다
 
 ## 🐛 문제 해결
 
 ### 일반적인 오류
-1. **API 키 오류**: API 키가 올바른지 확인
+1. **API 키 오류**: OpenAI/Gemini API 키가 올바른지 확인
 2. **이미지 업로드 실패**: 파일 형식과 크기 확인
-3. **합성 실패**: 인터넷 연결 상태 확인
+3. **합성 실패**: 인터넷 연결 상태 확인, 폴백 로그 확인
+4. **LLM 폴백 오류**: 로그에서 어떤 제공자가 실패했는지 확인
 
 ### 성능 최적화
 - 이미지 크기를 1024px 이하로 설정
@@ -139,7 +151,7 @@ maple_styletransform/
 2. "Create Service" → "Deploy from source" 선택
 3. GitHub/GitLab 저장소 연결
 4. `cloudbuild.yaml` 파일이 자동으로 감지됨
-5. 환경 변수에서 `GEMINI_API_KEY` 설정
+5. 환경 변수에서 `GOOGLE_API_KEY` 설정
 
 #### 자동 배포 흐름
 - 코드 푸시 → Cloud Build 트리거 → 자동 빌드 & 배포
