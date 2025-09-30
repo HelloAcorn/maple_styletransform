@@ -3,9 +3,7 @@
 character_name: "와일드헌터"
 
 prompt: |
-  🚨 CRITICAL: You are EDITING the existing 2D pixel sprite - DO NOT generate a new character.
-  🚨 CRITICAL: DO NOT redraw the sprite from scratch.
-  🚨 CRITICAL: ONLY modify the specified areas within existing pixel boundaries.
+  You are EDITING the existing 2D pixel sprite - DO NOT generate a new character.and redraw the sprite from scratch. ONLY modify the specified areas within existing pixel boundaries.
   
   EDITING MODE ONLY:
   - Work INSIDE the existing sprite outline - no expansion, no shrinking
@@ -77,13 +75,4 @@ prompt: |
   - DO NOT extend the rider's body downward beyond the original boundaries
   - No new accessories, effects, or extra items. No pose changes.
   - Do not restyle the jaguar or apply any global restyle.
-  
-  ⚠️ EDITING VERIFICATION:
-  - The output must clearly be a MODIFIED version of the input pixel sprite
-  - The two-tier structure (jaguar + rider) must remain identical
-  - The rider's legs must remain HIDDEN as in the original sprite
-  - The body structure, pose, and overall silhouette must remain identical
-  - Only the specified UPPER BODY areas (face, hair, upper clothing) should show changes
 
-  IF AMBIGUOUS:
-  - Prefer minimal edits that satisfy the change list while preserving all kept elements.

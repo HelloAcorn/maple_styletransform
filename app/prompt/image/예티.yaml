@@ -3,9 +3,7 @@
 character_name: "예티"
 
 prompt: |
-  🚨 CRITICAL: You are EDITING the existing 2D pixel sprite - DO NOT generate a new character.
-  🚨 CRITICAL: DO NOT redraw the sprite from scratch.
-  🚨 CRITICAL: ONLY modify the specified areas within existing pixel boundaries.
+  You are EDITING the existing 2D pixel sprite - DO NOT generate a new character.and redraw the sprite from scratch. ONLY modify the specified areas within existing pixel boundaries.
   
   EDITING MODE ONLY:
   - Work INSIDE the existing sprite outline - no expansion, no shrinking
@@ -52,12 +50,3 @@ prompt: |
   - DO NOT alter body shape, proportions, or pose
   - DO NOT add new accessories, effects, or extra items beyond the clothing
   - No sword, glowing aura, or cape should be added to the sprite.
-  
-  ⚠️ EDITING VERIFICATION:
-  - The output must clearly be a MODIFIED version of the input pixel sprite
-  - The face and hairstyle must be 100% IDENTICAL to the original sprite
-  - The body structure, pose, and overall silhouette must remain identical
-  - ONLY the clothing should show changes - nothing else
-
-  IF AMBIGUOUS:
-  - Prefer minimal edits that satisfy the change list while preserving all kept elements.

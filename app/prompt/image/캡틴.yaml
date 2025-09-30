@@ -3,9 +3,7 @@
 character_name: "캡틴"
 
 prompt: |
-  🚨 CRITICAL: You are EDITING the existing 2D pixel sprite - DO NOT generate a new character.
-  🚨 CRITICAL: DO NOT redraw the sprite from scratch.
-  🚨 CRITICAL: ONLY modify the specified areas within existing pixel boundaries.
+  You are EDITING the existing 2D pixel sprite - DO NOT generate a new character.and redraw the sprite from scratch. ONLY modify the specified areas within existing pixel boundaries.
   
   EDITING MODE ONLY:
   - Work INSIDE the existing sprite outline - no expansion, no shrinking
@@ -13,10 +11,24 @@ prompt: |
   - Apply only the requested changes. Keep all non-mentioned parts untouched.
   - This is MODIFICATION, not CREATION.
 
-  WHAT TO KEEP (do not alter):
-  - Body silhouette and proportions: keep EXACTLY the same as the current 2D pixel sprite.
-  - Unique items: keep the pirate hat (including feather and ornament) and the gun exactly as they are.
-  - Unchanged areas must retain the original pixel-art look: tiny square pixels, bold outlines, flat bright colors.
+  POSITIVE ELEMENTS (apply these):
+  - (chibi:1.5), (super deformed:1.3), (2-head-tall body ratio:1.4)
+  - (extremely short legs:1.4), (stubby limbs:1.3), short body
+  - HEAD = 75% of sprite height, BODY+LEGS = 25%
+  - pixel art, MapleStory style, tiny square pixels, bold outlines, flat bright colors
+  - KEEP: pirate hat (including feather and ornament - 100% unchanged), gun
+  - large head, cute, compressed proportions
+  - Weapons/props can be oversized, but body stays tiny
+
+  NEGATIVE ELEMENTS (avoid these):
+  - DO NOT add any hats, caps, beanies, headbands, hair accessories from reference photo
+  - DO NOT change or replace the pirate hat in any way
+  - DO NOT add extra feathers, ornaments, or decorations to the hat
+  - long legs, tall, slender, elongated body
+  - realistic proportions, 8-head body ratio, normal proportions
+  - stretched limbs, extended body parts
+  - scaling character to match weapon size
+  - blurry, anti-aliased edges
 
   WHAT TO CHANGE (apply edits only to these):
   - Clothing: replace the 2D pixel character's outfit with the person's clothing, rendered in the same 2D pixel-art style.
@@ -56,11 +68,4 @@ prompt: |
   - DO NOT ignore the existing pixel sprite and make something new
   - Do not alter body shape, proportions, pirate hat, feather, ornament, or gun.
   - No new accessories, effects, or extra items. No pose changes.
-  
-  ⚠️ EDITING VERIFICATION:
-  - The output must clearly be a MODIFIED version of the input pixel sprite
-  - The body structure, pose, and overall silhouette must remain identical
-  - Only the specified areas (face, hair, clothing) should show changes
 
-  IF AMBIGUOUS:
-  - Prefer minimal edits that satisfy the change list while preserving all kept elements.
