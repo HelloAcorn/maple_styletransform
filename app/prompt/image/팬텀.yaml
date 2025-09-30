@@ -1,0 +1,66 @@
+# 팬텀 캐릭터 편집 프롬프트
+
+character_name: "팬텀"
+
+prompt: |
+  🚨 CRITICAL: You are EDITING the existing 2D pixel sprite - DO NOT generate a new character.
+  🚨 CRITICAL: DO NOT redraw the sprite from scratch.
+  🚨 CRITICAL: ONLY modify the specified areas within existing pixel boundaries.
+  
+  EDITING MODE ONLY:
+  - Work INSIDE the existing sprite outline - no expansion, no shrinking
+  - The original sprite's body structure, pose, and proportions are UNTOUCHABLE
+  - Apply only the requested changes. Keep all non-mentioned parts untouched.
+  - This is MODIFICATION, not CREATION.
+
+  WHAT TO KEEP (do not alter):
+  - Body silhouette and proportions: keep EXACTLY the same as the current 2D pixel sprite.
+  - Props: keep the cane and the ornate hat-with-feather unchanged.
+  - Unchanged areas must retain the original pixel-art look: tiny square pixels, bold outlines, flat bright colors.
+
+  WHAT TO CHANGE (apply edits only to these):
+  - Clothing: replace the 2D pixel character's outfit with the person's clothing, rendered in the same 2D pixel-art style.
+  - Face: replace the original face with the person's traits—convert eye color, eye shape, perceived gender, and approximate age into 2D pixel art.
+  - Hairstyle: replace the original hairstyle with the person's hairstyle in the same 2D pixel style.
+    Edit face/hair only; do not change head size or any body segment length, and paint strictly inside existing outlines (no outline moves/additions).
+    Integrate the hair under the existing ornate hat-with-feather; do not alter the hat or its position.
+    Use tiny square pixels, bold outlines, and flat bright colors.
+
+  === REFERENCE INFORMATION FOR EDITING ===
+  TARGET HAIRSTYLE: {hairstyle}
+  TARGET OUTFIT: {outfit}
+  
+  🎯 MANDATORY EDITING INSTRUCTIONS:
+  - The pixel sprite (first image) is your STARTING POINT - never ignore it
+  - Use the reference information ONLY to guide specific edits
+  - DO NOT recreate the entire character based on the reference descriptions
+  - ONLY edit the hair and clothing areas of the EXISTING sprite
+  - Keep everything else from the original sprite UNCHANGED
+  - This is SELECTIVE EDITING, not full character generation
+  - The original sprite's pose, body, and proportions are SACRED - never change them
+
+  STYLE & OUTPUT CONSTRAINTS:
+  - This is a precise edit. Do NOT redraw, rescale, stretch, rotate, or re-pose the character.
+  - Lock the sprite to the original pixel height and head-to-body ratio (exactly 2.00 heads; no scaling or vertical shift, 0-px tolerance).
+  - Replace the outfit keep every outline pixel fixed. No new volume, no shrunken areas, no added segments.
+  - Do NOT introduce perspective/foreshortening that alters apparent height or proportions.
+  - Do NOT change the canvas size, camera angle, or background.
+  - Maintain clean, consistent pixel edges; avoid anti-aliased or blurry strokes.
+  - Keep color count and saturation consistent with the original sprite unless the change requires it.
+
+  🚫 STRICTLY PROHIBITED (will cause failure):
+  - DO NOT generate a completely new character
+  - DO NOT redraw the entire sprite from scratch
+  - DO NOT change the sprite's fundamental structure or pose
+  - DO NOT create a new character based on the reference photo
+  - DO NOT ignore the existing pixel sprite and make something new
+  - Do not alter body shape, proportions, cane, or hat-with-feather.
+  - No new accessories, effects, or extra items. No pose changes.
+  
+  ⚠️ EDITING VERIFICATION:
+  - The output must clearly be a MODIFIED version of the input pixel sprite
+  - The body structure, pose, and overall silhouette must remain identical
+  - Only the specified areas (face, hair, clothing) should show changes
+
+  IF AMBIGUOUS:
+  - Prefer minimal edits that satisfy the change list while preserving all kept elements.

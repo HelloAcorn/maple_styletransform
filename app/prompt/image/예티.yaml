@@ -1,0 +1,63 @@
+# 예티 캐릭터 편집 프롬프트
+
+character_name: "예티"
+
+prompt: |
+  🚨 CRITICAL: You are EDITING the existing 2D pixel sprite - DO NOT generate a new character.
+  🚨 CRITICAL: DO NOT redraw the sprite from scratch.
+  🚨 CRITICAL: ONLY modify the specified areas within existing pixel boundaries.
+  
+  EDITING MODE ONLY:
+  - Work INSIDE the existing sprite outline - no expansion, no shrinking
+  - The original sprite's body structure, pose, and proportions are UNTOUCHABLE
+  - Apply only the requested changes. Keep all non-mentioned parts untouched.
+  - This is MODIFICATION, not CREATION.
+
+  WHAT TO KEEP (do not alter):
+  - Body silhouette and proportions: keep EXACTLY the same as the current 2D pixel sprite.
+  - Face: KEEP the original sprite's face EXACTLY as it is (NO changes to eyes, expression, skin tone, facial features).
+  - Hairstyle: KEEP the original sprite's hairstyle EXACTLY as it is (NO changes to hair color, style, length, or shape).
+  - Unchanged areas must retain the original pixel-art look: tiny square pixels, bold outlines, flat bright colors.
+
+  WHAT TO CHANGE (apply edits ONLY to clothing):
+  - Clothing ONLY: replace the 2D pixel character's outfit with the person's clothing, rendered in the same 2D pixel-art style.
+  - Use tiny square pixels, bold outlines, and flat bright colors for the clothing.
+
+  === REFERENCE INFORMATION FOR EDITING ===
+  TARGET OUTFIT: {outfit}
+  (Note: Ignore hairstyle information - keep original sprite's hairstyle unchanged)
+  
+  🎯 MANDATORY EDITING INSTRUCTIONS:
+  - The pixel sprite (first image) is your STARTING POINT - never ignore it
+  - ONLY edit the CLOTHING areas of the EXISTING sprite
+  - DO NOT touch the face or hairstyle - they must remain 100% identical to the original sprite
+  - Use the outfit reference information to guide clothing changes only
+  - This is CLOTHING-ONLY EDITING, not character generation
+  - The original sprite's face, hair, pose, body, and proportions are SACRED - never change them
+
+  STYLE & OUTPUT CONSTRAINTS:
+  - This is a precise edit. Do NOT redraw, rescale, stretch, rotate, or re-pose the character.
+  - Lock the sprite to the original pixel height and head-to-body ratio (exactly 2.00 heads; no scaling or vertical shift, 0-px tolerance).
+  - Replace the outfit keep every outline pixel fixed. No new volume, no shrunken areas, no added segments.
+  - Do NOT introduce perspective/foreshortening that alters apparent height or proportions.
+  - Do NOT change the canvas size, camera angle, or background.
+  - Maintain clean, consistent pixel edges; avoid anti-aliased or blurry strokes.
+  - Keep color count and saturation consistent with the original sprite unless the change requires it.
+
+  🚫 STRICTLY PROHIBITED (will cause failure):
+  - DO NOT generate a completely new character
+  - DO NOT redraw the entire sprite from scratch
+  - DO NOT change the face in any way (eyes, expression, facial features must remain identical)
+  - DO NOT change the hairstyle in any way (hair color, style, shape must remain identical)
+  - DO NOT alter body shape, proportions, or pose
+  - DO NOT add new accessories, effects, or extra items beyond the clothing
+  - No sword, glowing aura, or cape should be added to the sprite.
+  
+  ⚠️ EDITING VERIFICATION:
+  - The output must clearly be a MODIFIED version of the input pixel sprite
+  - The face and hairstyle must be 100% IDENTICAL to the original sprite
+  - The body structure, pose, and overall silhouette must remain identical
+  - ONLY the clothing should show changes - nothing else
+
+  IF AMBIGUOUS:
+  - Prefer minimal edits that satisfy the change list while preserving all kept elements.

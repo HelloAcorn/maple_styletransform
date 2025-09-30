@@ -27,29 +27,29 @@ class PromptManager:
         """
         # 캐릭터가 제공된 경우 캐릭터별 프롬프트 찾기
         if character_name:
-            character_prompt_file = self.image_prompt_dir / f'{character_name}_editing.yaml'
+            character_prompt_file = self.image_prompt_dir / f'{character_name}.yaml'
             if character_prompt_file.exists():
-                self.logger.info(f"캐릭터별 프롬프트 파일 발견: {character_name}_editing.yaml")
+                self.logger.info(f"캐릭터별 프롬프트 파일 발견: {character_name}.yaml")
                 with open(character_prompt_file, 'r', encoding='utf-8') as file:
                     data = yaml.safe_load(file)
-                prompt = data['base_prompt'].strip()
+                prompt = data.get('prompt', '').strip()
                 return prompt
             else:
-                self.logger.warning(f"캐릭터별 프롬프트 파일이 존재하지 않음: {character_name}_editing.yaml")
+                self.logger.warning(f"캐릭터별 프롬프트 파일이 존재하지 않음: {character_name}.yaml")
         
-        # 기본 프롬프트 (첫 번째 발견된 *_editing.yaml 파일 사용)
-        editing_files = list(self.image_prompt_dir.glob('*_editing.yaml'))
-        if editing_files:
-            default_file = editing_files[0]
+        # 기본 프롬프트 (첫 번째 발견된 .yaml 파일 사용, unified_character_editing.yaml 제외)
+        yaml_files = [f for f in self.image_prompt_dir.glob('*.yaml') 
+                      if f.name != 'unified_character_editing.yaml']
+        if yaml_files:
+            default_file = yaml_files[0]
             self.logger.info(f"기본 프롬프트 파일 사용: {default_file.name}")
             with open(default_file, 'r', encoding='utf-8') as file:
                 data = yaml.safe_load(file)
-            prompt = data['base_prompt'].strip()
+            prompt = data.get('prompt', '').strip()
             return prompt
         
         # 아무 프롬프트도 없으면 기본 메시지 반환
-        self.logger.warning("프롬프트 파일을 찾을 수 없음, 기본 메시지 사용")
-        return "Edit the pixel art character in the style of the reference image."
+        raise ValueError("프롬프트 파일을 찾을 수 없음")
     
     # 동영상 프롬프트 관련 메서드들
     def get_available_video_prompts(self) -> Dict[str, str]:
@@ -131,58 +131,36 @@ class PromptManager:
     
     def get_unified_character_prompt(self, character_name: str) -> str:
         """
-        통합 캐릭터 편집 프롬프트를 생성합니다.
+        캐릭터별 편집 프롬프트를 반환합니다.
         
         Args:
             character_name: 캐릭터 이름
             
         Returns:
-            str: 캐릭터별로 변수가 치환된 완성된 프롬프트
+            str: 캐릭터별 프롬프트
         """
-        unified_prompt_file = self.image_prompt_dir / 'unified_character_editing.yaml'
+        character_prompt_file = self.image_prompt_dir / f'{character_name}.yaml'
         
-        if not unified_prompt_file.exists():
-            self.logger.warning("unified_character_editing.yaml 파일을 찾을 수 없음, 기존 방식 사용")
+        if not character_prompt_file.exists():
+            self.logger.warning(f"{character_name}.yaml 파일을 찾을 수 없음, 기존 방식 사용")
             return self.get_pixel_art_prompt(character_name)
         
         try:
-            with open(unified_prompt_file, 'r', encoding='utf-8') as f:
+            with open(character_prompt_file, 'r', encoding='utf-8') as f:
                 data = yaml.safe_load(f)
             
-            base_prompt = data.get('base_prompt', '')
-            characters = data.get('characters', {})
+            prompt = data.get('prompt', '')
             
-            # 캐릭터별 변수 가져오기
-            if character_name not in characters:
-                self.logger.warning(f"통합 프롬프트에 {character_name} 정보가 없음, 기본값 사용")
-                # 기본 캐릭터 사용 (첫 번째 캐릭터)
-                if characters:
-                    character_name = list(characters.keys())[0]
-                    character_vars = characters[character_name]
-                else:
-                    return self.get_pixel_art_prompt(character_name)
-            else:
-                character_vars = characters[character_name]
-            
-            # 변수 치환
-            prompt = base_prompt
-            for key, value in character_vars.items():
-                placeholder = f"{{{key}}}"
-                # 빈 값 처리
-                if value == "" or value is None:
-                    value = ""
-                prompt = prompt.replace(placeholder, str(value))
-            
-            self.logger.info(f"통합 캐릭터 프롬프트 생성 완료: {character_name}")
+            self.logger.info(f"캐릭터 프롬프트 로드 완료: {character_name}")
             return prompt.strip()
             
         except Exception as e:
-            self.logger.error(f"통합 캐릭터 프롬프트 로드 실패: {e}")
+            self.logger.error(f"캐릭터 프롬프트 로드 실패: {e}")
             return self.get_pixel_art_prompt(character_name)
     
     def get_unified_character_prompt_with_analysis(self, character_name: str, human_analysis: Dict[str, str]) -> str:
         """
-        통합 캐릭터 편집 프롬프트를 생성하고 분석 결과를 적용합니다.
+        캐릭터별 편집 프롬프트를 생성하고 분석 결과를 적용합니다.
         
         Args:
             character_name: 캐릭터 이름
@@ -191,39 +169,17 @@ class PromptManager:
         Returns:
             str: 분석 결과가 적용된 완성된 프롬프트
         """
-        unified_prompt_file = self.image_prompt_dir / 'unified_character_editing.yaml'
+        character_prompt_file = self.image_prompt_dir / f'{character_name}.yaml'
         
-        if not unified_prompt_file.exists():
-            self.logger.warning("unified_character_editing.yaml 파일을 찾을 수 없음, 기존 방식 사용")
+        if not character_prompt_file.exists():
+            self.logger.warning(f"{character_name}.yaml 파일을 찾을 수 없음, 기존 방식 사용")
             return self.get_pixel_art_prompt(character_name)
         
         try:
-            with open(unified_prompt_file, 'r', encoding='utf-8') as f:
+            with open(character_prompt_file, 'r', encoding='utf-8') as f:
                 data = yaml.safe_load(f)
             
-            base_prompt = data.get('base_prompt', '')
-            characters = data.get('characters', {})
-            
-            # 캐릭터별 변수 가져오기
-            if character_name not in characters:
-                self.logger.warning(f"통합 프롬프트에 {character_name} 정보가 없음, 기본값 사용")
-                # 기본 캐릭터 사용 (첫 번째 캐릭터)
-                if characters:
-                    character_name = list(characters.keys())[0]
-                    character_vars = characters[character_name]
-                else:
-                    return self.get_pixel_art_prompt(character_name)
-            else:
-                character_vars = characters[character_name]
-            
-            # 기본 변수 치환
-            prompt = base_prompt
-            for key, value in character_vars.items():
-                placeholder = f"{{{key}}}"
-                # 빈 값 처리
-                if value == "" or value is None:
-                    value = ""
-                prompt = prompt.replace(placeholder, str(value))
+            prompt = data.get('prompt', '')
             
             # human_explain.yaml 분석 결과 적용 (간단한 문자열 변환)
             if "hairstyle" in human_analysis:
@@ -253,7 +209,7 @@ class PromptManager:
             else:
                 prompt = prompt.replace("{outfit}", "unknown outfit")
             
-            self.logger.info(f"분석 결과가 적용된 통합 캐릭터 프롬프트 생성 완료: {character_name}")
+            self.logger.info(f"분석 결과가 적용된 캐릭터 프롬프트 생성 완료: {character_name}")
             return prompt.strip()
             
         except Exception as e:
