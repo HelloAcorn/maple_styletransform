@@ -180,8 +180,13 @@ class SampleImageGenerator:
         
         return successful_results
     
-    def generate_all_combinations(self, num_images: int) -> Dict[str, Dict[str, List[Dict]]]:
-        """모든 입력 이미지와 캐릭터 조합에 대해 이미지 생성"""
+    def generate_all_combinations(self, num_images: int, selected_character: str = None) -> Dict[str, Dict[str, List[Dict]]]:
+        """모든 입력 이미지와 캐릭터 조합에 대해 이미지 생성
+        
+        Args:
+            num_images: 각 조합당 생성할 이미지 수
+            selected_character: 특정 캐릭터만 생성 (None이면 모든 캐릭터)
+        """
         characters = self.get_available_characters()
         input_images = self.get_available_input_images()
         
@@ -192,6 +197,16 @@ class SampleImageGenerator:
         if not input_images:
             self.logger.error("사용 가능한 입력 이미지가 없습니다.")
             return {}
+        
+        # 특정 캐릭터만 선택된 경우 필터링
+        if selected_character:
+            if selected_character in characters:
+                characters = [selected_character]
+                self.logger.info(f"선택된 캐릭터: {selected_character}")
+            else:
+                self.logger.error(f"캐릭터 '{selected_character}'를 찾을 수 없습니다.")
+                self.logger.info(f"사용 가능한 캐릭터: {', '.join(self.get_available_characters())}")
+                return {}
         
         total_combinations = len(input_images) * len(characters)
         self.logger.info(f"총 {len(input_images)}개 입력 이미지 × {len(characters)}개 캐릭터 = {total_combinations}개 조합")
@@ -250,9 +265,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 예시:
-  python make_sample_image.py -n 3          # 각 캐릭터별로 3장씩 생성
-  python make_sample_image.py -n 5          # 각 캐릭터별로 5장씩 생성
-  python make_sample_image.py --help        # 도움말 표시
+  python make_sample_image.py -n 3                    # 모든 캐릭터별로 3장씩 생성
+  python make_sample_image.py -n 5 -c 메이플러       # 메이플러만 5장씩 생성
+  python make_sample_image.py --char 슬라임          # 슬라임만 2장씩 생성 (기본값)
+  python make_sample_image.py --list-characters      # 캐릭터 목록 표시
+  python make_sample_image.py --help                 # 도움말 표시
         """
     )
     
@@ -261,6 +278,14 @@ def main():
         type=int,
         default=2,
         help='각 캐릭터별로 생성할 이미지 수 (기본값: 2)'
+    )
+    
+    parser.add_argument(
+        '-c', '--char',
+        type=str,
+        default=None,
+        help='특정 캐릭터만 생성 (예: 메이플러)', 
+        metavar='CHARACTER'
     )
     
     parser.add_argument(
@@ -329,16 +354,31 @@ def main():
         print("❌ files/pixel_character_image 폴더에 캐릭터 이미지가 없습니다.")
         return 1
     
-    total_combinations = len(input_images) * len(characters)
+    # 특정 캐릭터 선택 시 검증
+    if args.char:
+        if args.char not in characters:
+            print(f"❌ 캐릭터 '{args.char}'를 찾을 수 없습니다.")
+            print(f"\n사용 가능한 캐릭터 목록:")
+            for i, character in enumerate(characters, 1):
+                print(f"  {i:2d}. {character}")
+            return 1
+        selected_chars = [args.char]
+    else:
+        selected_chars = characters
+    
+    total_combinations = len(input_images) * len(selected_chars)
     total_images = total_combinations * args.num_images
     
-    print(f"🎨 {len(input_images)}개 입력 이미지 × {len(characters)}개 캐릭터 조합으로 각각 {args.num_images}장씩 생성합니다.")
+    if args.char:
+        print(f"🎨 {len(input_images)}개 입력 이미지 × 캐릭터 '{args.char}' 조합으로 각각 {args.num_images}장씩 생성합니다.")
+    else:
+        print(f"🎨 {len(input_images)}개 입력 이미지 × {len(selected_chars)}개 캐릭터 조합으로 각각 {args.num_images}장씩 생성합니다.")
     print(f"📊 총 {total_combinations}개 조합 × {args.num_images}장 = {total_images}장 생성 예정")
     print(f"📁 결과는 test/result/입력이미지명/ 폴더에 모든 캐릭터 이미지가 저장됩니다.")
     
     try:
         # 이미지 생성 실행
-        results = generator.generate_all_combinations(args.num_images)
+        results = generator.generate_all_combinations(args.num_images, selected_character=args.char)
         
         if results:
             print(f"\n✅ 샘플 이미지 생성이 완료되었습니다!")
