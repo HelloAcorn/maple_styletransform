@@ -12,7 +12,7 @@ import concurrent.futures
 import threading
 
 from app.core.router import PageSpec
-from app.modules.gemini_integration import GeminiImageProcessor
+from app.modules.image_integration import LLMImageProcessor
 from app.modules.image_utils import ImageUtils
 from app.modules.asset_manager import get_asset_manager
 from app.utils.logger import setup_logger
@@ -159,7 +159,7 @@ class PixelArtEditorPage:
                         # image1이 픽셀 캐릭터, image2가 참고 사진이라고 가정
                         self._process_images(image1, image2, api_key)
     
-    def _generate_single_image(self, processor: GeminiImageProcessor, selfie_image: Image.Image, 
+    def _generate_single_image(self, processor: LLMImageProcessor, selfie_image: Image.Image, 
                               pixel_character_image: Image.Image, enhanced_style: str, 
                               character_name: str, index: int) -> Dict[str, Any]:
         """단일 이미지 생성 (병렬 처리용)"""
@@ -182,9 +182,16 @@ class PixelArtEditorPage:
             pixel_copy = Image.open(pixel_buffer)
             pixel_copy.load()
             
-            merged_image = processor.create_artistic_merge(
-                pixel_copy, selfie_copy, enhanced_style, character_name
-            )
+            # 비동기 메소드를 동기적으로 호출
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                merged_image = loop.run_until_complete(
+                    processor.analyze_and_merge_images(pixel_copy, selfie_copy, character_name)
+                )
+            finally:
+                loop.close()
             if merged_image:
                 saved_path = ImageUtils.save_pil_image(merged_image)
                 self.logger.info(f"이미지 생성 완료 #{index + 1}")
@@ -255,7 +262,7 @@ class PixelArtEditorPage:
             status_text.text("🔧 Gemini AI 모델 초기화 중...")
             progress_bar.progress(20)
             
-            processors = [GeminiImageProcessor(api_key) for _ in range(4)]
+            processors = [LLMImageProcessor() for _ in range(4)]
             
             # 4. 4장의 픽셀 아트 캐릭터 동시 합성
             status_text.text(f"🎨 4장의 메이플스토리 캐릭터 생성 중... ({character_name})")
@@ -328,12 +335,21 @@ class PixelArtEditorPage:
             status_text.text("🔧 Gemini AI 모델 초기화 중...")
             progress_bar.progress(20)
             
-            processor = GeminiImageProcessor(api_key)
+            processor = LLMImageProcessor()
             
             status_text.text("🎨 픽셀 아트 캐릭터 합성 중... (시간이 다소 걸릴 수 있습니다)")
             progress_bar.progress(40)
             
-            merged_image = processor.create_artistic_merge(pixel_character_image, reference_photo, self.default_style)
+            # 비동기 메소드 호출을 위한 asyncio 사용
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                merged_image = loop.run_until_complete(
+                    processor.analyze_and_merge_images(pixel_character_image, reference_photo, character_name)
+                )
+            finally:
+                loop.close()
             progress_bar.progress(80)
             
             if merged_image:

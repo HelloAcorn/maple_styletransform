@@ -19,7 +19,7 @@ import threading
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from app.modules.gemini_integration import GeminiImageProcessor
+from app.modules.image_integration import LLMImageProcessor
 from app.modules.image_utils import ImageUtils
 from app.utils.logger import setup_logger
 
@@ -27,9 +27,9 @@ from app.utils.logger import setup_logger
 class SampleImageGenerator:
     """샘플 이미지 생성기"""
     
-    def __init__(self, api_key: str):
+    def __init__(self):
         self.logger = setup_logger('sample_image_generator')
-        self.processor = GeminiImageProcessor(api_key)
+        self.processor = LLMImageProcessor()
         self.base_dir = Path(__file__).parent.parent
         self.character_dir = self.base_dir / "files" / "pixel_character_image"
         self.input_image_dir = self.base_dir / "test" / "input_Image"
@@ -124,10 +124,16 @@ class SampleImageGenerator:
                     self.logger.error(f"{input_image_name}+{character_name} - 이미지 복사 실패: {copy_error}")
                     return {'success': False, 'index': index, 'error': f'이미지 복사 실패: {copy_error}'}
                 
-                # 이미지 생성 (픽셀 캐릭터 + 입력 이미지)
-                result_image = self.processor.create_artistic_merge(
-                    pixel_copy, input_copy, "natural", character_name
-                )
+                # 이미지 생성 (픽셀 캐릭터 + 입력 이미지) - 새로운 분석 방식 사용
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    result_image = loop.run_until_complete(
+                        self.processor.analyze_and_merge_images(pixel_copy, input_copy, character_name)
+                    )
+                finally:
+                    loop.close()
                 
                 if result_image:
                     # 파일명 생성 (입력이미지_캐릭터_번호_타임스탬프)
@@ -265,30 +271,13 @@ def main():
     
     args = parser.parse_args()
     
-    # API 키 로드
-    api_key_file = Path(__file__).parent.parent / "app" / "core" / ".api_key"
-    
-    if not api_key_file.exists():
-        print("❌ API 키 파일을 찾을 수 없습니다: app/core/.api_key")
-        return 1
-    
+    # 샘플 이미지 생성기 초기화 (API 키는 LLMSettings에서 자동 로드)
     try:
-        with open(api_key_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-            # GOOGLE_API_KEY 추출
-            for line in content.split('\n'):
-                if line.startswith('GOOGLE_API_KEY'):
-                    api_key = line.split('=')[1].strip().strip('"')
-                    break
-            else:
-                print("❌ API 키 파일에서 GOOGLE_API_KEY를 찾을 수 없습니다.")
-                return 1
+        generator = SampleImageGenerator()
     except Exception as e:
-        print(f"❌ API 키 파일 읽기 오류: {e}")
+        print(f"❌ 이미지 생성기 초기화 실패: {e}")
+        print("💡 app/core/.api_key 파일에 GOOGLE_API_KEY가 설정되어 있는지 확인하세요.")
         return 1
-    
-    # 샘플 이미지 생성기 초기화
-    generator = SampleImageGenerator(api_key)
     
     # 캐릭터 목록만 표시하는 경우
     if args.list_characters:

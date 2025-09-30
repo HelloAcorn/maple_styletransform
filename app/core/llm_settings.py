@@ -27,11 +27,9 @@ class LLMSettings:
         self.load_api_keys()
         
         # 기본 모델 설정
-        self.DEFAULT_OPENAI_MODEL = "gpt-4o"
+        self.DEFAULT_OPENAI_MODEL = "gpt-5-nano"
         self.DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
         
-        # 폴백 설정
-        self.RETRY_DELAY_SECONDS = 1.0
         
         self.logger.info("LLM 설정 초기화 완료")
     
@@ -72,24 +70,6 @@ class LLMSettings:
         else:
             self.logger.warning("⚠️ API 키 파일을 찾을 수 없습니다.")
         
-        # 로드 결과 확인
-        self._validate_api_keys()
-    
-    def _validate_api_keys(self):
-        """API 키 유효성 검사"""
-        validation_result = {
-            "openai": self.OPENAI_API_KEY is not None and len(self.OPENAI_API_KEY) > 10,
-            "gemini": self.GOOGLE_API_KEY is not None and len(self.GOOGLE_API_KEY) > 10
-        }
-        
-        for provider, is_valid in validation_result.items():
-            if is_valid:
-                self.logger.info(f"✅ {provider.upper()} API 키 유효")
-            else:
-                self.logger.warning(f"❌ {provider.upper()} API 키 없음 또는 유효하지 않음")
-        
-        if not any(validation_result.values()):
-            self.logger.error("❌ 사용 가능한 API 키가 없습니다!")
     
     def get_openai_config(self) -> dict:
         """OpenAI 설정 반환"""
@@ -115,11 +95,11 @@ class LLMSettings:
     
     def is_openai_available(self) -> bool:
         """OpenAI 사용 가능 여부"""
-        return self.OPENAI_API_KEY is not None and len(self.OPENAI_API_KEY) > 10
+        return self.OPENAI_API_KEY is not None
     
     def is_gemini_available(self) -> bool:
         """Gemini 사용 가능 여부"""
-        return self.GOOGLE_API_KEY is not None and len(self.GOOGLE_API_KEY) > 10
+        return self.GOOGLE_API_KEY is not None
     
     def get_available_providers(self) -> list:
         """사용 가능한 LLM 제공자 목록"""

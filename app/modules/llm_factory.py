@@ -4,10 +4,9 @@ OpenAI와 Gemini LLM을 생성하고 폴백 기능을 제공하는 팩토리
 """
 import asyncio
 import time
-from typing import Optional, Any, Union, List
+from typing import Optional, Any, List, Dict
 from abc import ABC, abstractmethod
-from PIL import Image
-import io
+import json
 
 # OpenAI 관련
 from langchain_openai import ChatOpenAI
@@ -15,7 +14,6 @@ from langchain_core.messages import HumanMessage
 
 # Gemini 관련
 import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 from app.core.llm_settings import get_llm_settings
 from app.utils.logger import setup_logger
@@ -33,17 +31,6 @@ class BaseLLMClient(ABC):
     async def generate_text(self, prompt: str, **kwargs) -> str:
         """텍스트 생성"""
         pass
-    
-    @abstractmethod
-    async def generate_image_edit(self, prompt: str, base_image: Image.Image, 
-                                reference_image: Optional[Image.Image] = None, **kwargs) -> Optional[Image.Image]:
-        """이미지 편집"""
-        pass
-    
-    @abstractmethod
-    def is_available(self) -> bool:
-        """클라이언트 사용 가능 여부"""
-        pass
 
 
 class OpenAILLMClient(BaseLLMClient):
@@ -53,9 +40,8 @@ class OpenAILLMClient(BaseLLMClient):
         super().__init__(config)
         try:
             self.client = ChatOpenAI(
-                model=config.get("model", "gpt-4o"),
-                openai_api_key=config["api_key"],
-                temperature=0.7
+                model=config.get("model", "gpt-5-nano"),
+                openai_api_key=config["api_key"]
             )
             self.logger.info("OpenAI 클라이언트 초기화 완료")
         except Exception as e:
@@ -78,16 +64,6 @@ class OpenAILLMClient(BaseLLMClient):
         except Exception as e:
             self.logger.error(f"OpenAI 텍스트 생성 실패: {e}")
             raise
-    
-    async def generate_image_edit(self, prompt: str, base_image: Image.Image, 
-                                reference_image: Optional[Image.Image] = None, **kwargs) -> Optional[Image.Image]:
-        """이미지 편집 (OpenAI는 현재 미지원)"""
-        self.logger.warning("OpenAI는 현재 이미지 편집을 지원하지 않습니다.")
-        raise NotImplementedError("OpenAI 이미지 편집은 현재 미지원")
-    
-    def is_available(self) -> bool:
-        """클라이언트 사용 가능 여부"""
-        return hasattr(self, 'client') and self.client is not None
 
 
 class GeminiLLMClient(BaseLLMClient):
@@ -117,71 +93,6 @@ class GeminiLLMClient(BaseLLMClient):
         except Exception as e:
             self.logger.error(f"Gemini 텍스트 생성 실패: {e}")
             raise
-    
-    async def generate_image_edit(self, prompt: str, base_image: Image.Image, 
-                                reference_image: Optional[Image.Image] = None, **kwargs) -> Optional[Image.Image]:
-        """이미지 편집"""
-        try:
-            self.logger.info("Gemini 이미지 편집 시작")
-            
-            # 이미지를 API 형태로 변환
-            base_image_part = self._image_to_parts(base_image)
-            parts = [prompt, base_image_part]
-            
-            # 참고 이미지가 있는 경우 추가
-            if reference_image:
-                reference_image_part = self._image_to_parts(reference_image)
-                parts.append(reference_image_part)
-            
-            # Gemini API 호출
-            response = self.model.generate_content(
-                parts,
-                safety_settings={
-                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                }
-            )
-            
-            # 응답에서 이미지 추출
-            if response.parts:
-                for part in response.parts:
-                    if hasattr(part, 'inline_data') and part.inline_data:
-                        image_data = part.inline_data.data
-                        result_image = Image.open(io.BytesIO(image_data))
-                        self.logger.info("Gemini 이미지 편집 완료")
-                        return result_image
-            
-            self.logger.warning("Gemini 응답에서 이미지 데이터를 찾을 수 없음")
-            return None
-            
-        except Exception as e:
-            self.logger.error(f"Gemini 이미지 편집 실패: {e}")
-            raise
-    
-    def _image_to_parts(self, image: Union[str, Image.Image]) -> dict:
-        """이미지를 Gemini API에서 사용할 수 있는 형태로 변환"""
-        if isinstance(image, str):
-            # 파일 경로인 경우
-            with open(image, 'rb') as img_file:
-                image_data = img_file.read()
-        elif isinstance(image, Image.Image):
-            # PIL Image 객체인 경우
-            img_byte_arr = io.BytesIO()
-            image.save(img_byte_arr, format='PNG')
-            image_data = img_byte_arr.getvalue()
-        else:
-            raise ValueError("이미지는 파일 경로 또는 PIL Image 객체여야 합니다.")
-            
-        return {
-            "mime_type": "image/png",
-            "data": image_data
-        }
-    
-    def is_available(self) -> bool:
-        """클라이언트 사용 가능 여부"""
-        return hasattr(self, 'model') and self.model is not None
 
 
 class LLMFactory:
@@ -191,6 +102,10 @@ class LLMFactory:
         self.settings = get_llm_settings()
         self.logger = setup_logger('llm_factory')
         self._clients = {}
+        
+        # 프롬프트 매니저 초기화
+        from app.utils.prompt_manager import PromptManager
+        self.prompt_manager = PromptManager()
     
     def create_client(self, provider: str) -> BaseLLMClient:
         """LLM 클라이언트 생성"""
@@ -227,9 +142,6 @@ class LLMFactory:
                 self.logger.info(f"{provider}로 텍스트 생성 시도")
                 
                 client = self.create_client(provider)
-                if not client.is_available():
-                    continue
-                
                 result = await client.generate_text(prompt, **kwargs)
                 self.logger.info(f"{provider}로 텍스트 생성 성공")
                 return result
@@ -240,56 +152,11 @@ class LLMFactory:
                 # 마지막 제공자가 아니라면 다음으로 넘어감
                 if provider != fallback_order[-1]:
                     self.logger.info(f"다음 제공자로 폴백: {fallback_order[fallback_order.index(provider) + 1]}")
-                    await asyncio.sleep(self.settings.RETRY_DELAY_SECONDS)
+                    await asyncio.sleep(0.1)
                     continue
                 else:
                     # 모든 제공자 실패
                     raise Exception(f"모든 LLM 제공자에서 텍스트 생성 실패. 마지막 오류: {e}")
-    
-    async def generate_image_edit_with_fallback(self, prompt: str, base_image: Image.Image, 
-                                              reference_image: Optional[Image.Image] = None, **kwargs) -> Optional[Image.Image]:
-        """폴백 기능이 있는 이미지 편집 (OpenAI -> Gemini 순서, 하지만 실제로는 Gemini만 지원)"""
-        fallback_order = self.settings.get_fallback_order()
-        
-        if not fallback_order:
-            raise Exception("사용 가능한 LLM 제공자가 없습니다.")
-        
-        for provider in fallback_order:
-            try:
-                self.logger.info(f"{provider}로 이미지 편집 시도")
-                
-                client = self.create_client(provider)
-                if not client.is_available():
-                    continue
-                
-                # OpenAI는 이미지 편집을 지원하지 않으므로 건너뛰기
-                if provider == "openai":
-                    self.logger.info("OpenAI는 이미지 편집을 지원하지 않음, 다음 제공자로 이동")
-                    continue
-                
-                result = await client.generate_image_edit(prompt, base_image, reference_image, **kwargs)
-                if result:
-                    self.logger.info(f"{provider}로 이미지 편집 성공")
-                    return result
-                
-            except NotImplementedError:
-                # 지원하지 않는 기능인 경우 다음 제공자로
-                self.logger.info(f"{provider}는 이미지 편집을 지원하지 않음")
-                continue
-                
-            except Exception as e:
-                self.logger.warning(f"{provider} 이미지 편집 실패: {e}")
-                
-                # 마지막 제공자가 아니라면 다음으로 넘어감
-                if provider != fallback_order[-1]:
-                    self.logger.info(f"다음 제공자로 폴백: {fallback_order[fallback_order.index(provider) + 1]}")
-                    await asyncio.sleep(self.settings.RETRY_DELAY_SECONDS)
-                    continue
-                else:
-                    # 모든 제공자 실패
-                    raise Exception(f"모든 LLM 제공자에서 이미지 편집 실패. 마지막 오류: {e}")
-        
-        raise Exception("이미지 편집을 지원하는 LLM 제공자가 없습니다.")
     
     def get_available_providers(self) -> List[str]:
         """사용 가능한 제공자 목록"""
@@ -298,6 +165,126 @@ class LLMFactory:
     def get_fallback_order(self) -> List[str]:
         """폴백 순서 반환"""
         return self.settings.get_fallback_order()
+    
+    async def analyze_human_from_image(self, image_path: str) -> Dict[str, str]:
+        """
+        사람 이미지를 분석하여 헤어스타일과 옷차림을 추출
+        
+        Args:
+            image_path: 분석할 이미지 경로
+            
+        Returns:
+            Dict: {"hairstyle": "...", "outfit": "..."} 형식의 분석 결과
+        """
+        try:
+            self.logger.info("사람 이미지 분석 시작")
+            
+            # human_explain 프롬프트 로드
+            human_prompt = self.prompt_manager.get_human_analysis_prompt()
+            
+            # Gemini 클라이언트 사용 (이미지 분석 가능)
+            gemini_client = self.create_client("gemini")
+            
+            # 이미지와 함께 분석 요청
+            from PIL import Image
+            import io
+            
+            # 이미지 로드
+            image = Image.open(image_path)
+            
+            # 이미지를 바이트로 변환
+            img_byte_arr = io.BytesIO()
+            image.save(img_byte_arr, format='PNG')
+            img_byte_arr = img_byte_arr.getvalue()
+            
+            # Gemini API로 분석
+            import google.generativeai as genai
+            from google.generativeai.types import HarmCategory, HarmBlockThreshold
+            
+            model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025')
+            
+            response = model.generate_content(
+                [
+                    human_prompt,
+                    {
+                        "mime_type": "image/png",
+                        "data": img_byte_arr
+                    }
+                ],
+                safety_settings={
+                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                }
+            )
+            
+            # JSON 응답 파싱
+            result_text = response.text
+            
+            # JSON 블록 추출 (```json ... ``` 형식)
+            import re
+            json_match = re.search(r'```json\s*(.*?)\s*```', result_text, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+            else:
+                # 전체 텍스트를 JSON으로 시도
+                json_str = result_text
+            
+            analysis_result = json.loads(json_str)
+            
+            # 리스트를 문자열로 변환 (Gemini가 리스트로 반환하는 경우 처리)
+            processed_result = {}
+            for key, value in analysis_result.items():
+                if isinstance(value, list):
+                    # 리스트를 자연스러운 문장으로 변환
+                    if key == "hairstyle":
+                        processed_result[key] = " ".join(value)
+                    elif key == "outfit":
+                        processed_result[key] = " ".join(value)
+                    elif key == "face":
+                        processed_result[key] = " ".join(value)
+                    else:
+                        processed_result[key] = " ".join(value)
+                else:
+                    processed_result[key] = str(value)
+            
+            self.logger.info(f"사람 이미지 분석 완료: {processed_result}")
+            return processed_result
+            
+        except Exception as e:
+            self.logger.error(f"사람 이미지 분석 실패: {e}")
+            # 기본값 반환
+            return {
+                "hairstyle": "unknown",
+                "outfit": "unknown"
+            }
+    
+    def build_character_edit_prompt(self, character_name: str, human_analysis: Dict[str, str]) -> str:
+        """
+        캐릭터 편집 프롬프트 생성
+        
+        Args:
+            character_name: 캐릭터 이름
+            human_analysis: 사람 분석 결과 {"hairstyle": "...", "face": "...", "outfit": "..."}
+            
+        Returns:
+            str: 완성된 편집 프롬프트
+        """
+        try:
+            # 통합 프롬프트를 분석 결과와 함께 로드
+            unified_prompt = self.prompt_manager.get_unified_character_prompt_with_analysis(
+                character_name, human_analysis
+            )
+            
+            self.logger.info(f"캐릭터 편집 프롬프트 생성 완료: {character_name}")
+            self.logger.debug(f"분석 결과 적용: hairstyle={human_analysis.get('hairstyle', 'unknown')[:50]}..., outfit={human_analysis.get('outfit', 'unknown')[:50]}...")
+            
+            return unified_prompt
+            
+        except Exception as e:
+            self.logger.error(f"캐릭터 편집 프롬프트 생성 실패: {e}")
+            raise
 
 
 # 전역 팩토리 인스턴스

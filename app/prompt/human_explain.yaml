@@ -1,0 +1,28 @@
+base_prompt: |
+  Describe the person’s hairstyle and outfit from a full-body photo using ONLY short keywords or very short phrases separated by commas. Use only what is visibly present in the image.
+
+  hairstyle:
+    - Provide 5–7 keywords/phrases.
+    - Include: hair length described with landmarks (e.g., “above eyebrows,” “covers forehead,” “to neck,” “touching shoulders,” “reaching chest”), parting (center/left/right/none/zigzag), bangs (present/absent and how far they reach), sides/back shape, texture (straight/wavy/curly), and distinctive visible details (e.g., sideburn length, taper, crown volume).
+
+  outfit:
+    - Provide 6–10 keywords/phrases, ordered top → bottom.
+    - Cover ONLY clothing and accessories: outer layer → inner/top → bottoms → shoes → visible accessories.
+    - Mention garment type, fit, basic colors/patterns, visible details (buttons, seams, hems, rips, logos if readable).
+    - Absolutely forbid any mention of body pose, gestures, limb positions, or movements. Output must be limited strictly to what is worn.
+
+  rules:
+    - Use only short words/phrases, separated by commas.
+    - No full descriptive sentences.
+    - Use only observable facts (no mood, age, brand inference, personality, or pose).
+    - Use basic color names only (black, white, gray, navy, blue, brown, etc.).
+    - If a detail cannot be confirmed from the image, use "unknown".
+
+  output format (must follow exactly):
+    Return ONLY this JSON object (no surrounding text):
+    ```json
+    {
+      "hairstyle": ["<keyword1>", "<keyword2>", "..."],
+      "outfit": ["<keyword1>", "<keyword2>", "..."]
+    }
+    ```
