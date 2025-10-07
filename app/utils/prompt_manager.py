@@ -106,6 +106,56 @@ class PromptManager:
         """
         return list(self.get_available_video_prompts().keys())
     
+    def get_video_prompts_by_category(self, category: str) -> Dict[str, str]:
+        """
+        특정 카테고리의 동영상 프롬프트 목록을 반환합니다.
+        
+        Args:
+            category: 카테고리명 (no_weapon, with_weapon, with_jaguar, with_machine)
+            
+        Returns:
+            Dict[str, str]: 파일명(확장자 제외) -> 표시명 매핑
+        """
+        prompts = {}
+        category_dir = self.video_prompt_dir / category
+        
+        if not category_dir.exists():
+            self.logger.warning(f"카테고리 디렉토리를 찾을 수 없음: {category}")
+            return prompts
+            
+        # YAML 파일 목록 가져오기
+        yaml_files = list(category_dir.glob("*.yaml"))
+        
+        for yaml_file in yaml_files:
+            prompt_key = yaml_file.stem
+            display_name = prompt_key
+            prompts[prompt_key] = display_name
+            
+        return prompts
+    
+    def get_video_prompt_content_by_category(self, category: str, prompt_name: str) -> str:
+        """
+        특정 카테고리의 동영상 프롬프트 내용을 반환합니다.
+        
+        Args:
+            category: 카테고리명
+            prompt_name: 프롬프트 파일명 (확장자 제외)
+            
+        Returns:
+            str: 프롬프트 내용
+        """
+        yaml_file = self.video_prompt_dir / category / f"{prompt_name}.yaml"
+        
+        if not yaml_file.exists():
+            return f"기본 동영상 생성 프롬프트 (파일 없음: {category}/{prompt_name})"
+            
+        try:
+            with open(yaml_file, 'r', encoding='utf-8') as f:
+                data = yaml.safe_load(f)
+                return data.get('base_prompt', '기본 동영상 생성 프롬프트')
+        except Exception as e:
+            return f"프롬프트 로드 오류: {str(e)}"
+    
     def get_human_analysis_prompt(self) -> str:
         """
         사람 분석용 프롬프트를 반환합니다.

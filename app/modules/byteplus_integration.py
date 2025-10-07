@@ -112,8 +112,8 @@ class BytePlusVideoGenerator:
             url_image = f"data:image/png;base64,{image_base64}"
             
             # 프롬프트에 설정 파라미터 추가 (테스트 코드 방식)
-            enhanced_prompt = f"{prompt} --resolution 480p --duration {duration} --ratio 9:16 --camerafixed true"
-            
+            enhanced_prompt = f"{prompt} --resolution 480p --duration {duration} --ratio 1:1 --camerafixed true"
+        
             # API 요청 데이터 - v3 API 형식
             request_data = {
                 "model": "seedance-1-0-pro-250528",  # 테스트 코드와 동일한 모델명
@@ -260,7 +260,7 @@ class BytePlusVideoGenerator:
     
     def generate_video_from_image(self, image: Union[str, Image.Image],
                                  prompt: str = "자연스럽고 부드러운 움직임으로 생동감 있는 동영상을 만들어주세요.",
-                                 duration: int = 4,
+                                 duration: int = 5,
                                  save_path: Optional[str] = None) -> Optional[str]:
         """
         이미지로부터 동영상 생성 (전체 프로세스)

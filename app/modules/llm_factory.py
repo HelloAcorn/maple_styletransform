@@ -182,9 +182,6 @@ class LLMFactory:
             # human_explain 프롬프트 로드
             human_prompt = self.prompt_manager.get_human_analysis_prompt()
             
-            # Gemini 클라이언트 사용 (이미지 분석 가능)
-            gemini_client = self.create_client("gemini")
-            
             # 이미지와 함께 분석 요청
             from PIL import Image
             import io
@@ -197,12 +194,37 @@ class LLMFactory:
             image.save(img_byte_arr, format='PNG')
             img_byte_arr = img_byte_arr.getvalue()
             
-            # Gemini API로 분석
+            # Gemini API로 분석 (JSON 모드 사용)
             import google.generativeai as genai
-            from google.generativeai.types import HarmCategory, HarmBlockThreshold
+            from google.generativeai.types import HarmCategory, HarmBlockThreshold, GenerationConfig
             
-            model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025')
+            # JSON 스키마 정의
+            response_schema = {
+                "type": "object",
+                "properties": {
+                    "hairstyle": {
+                        "type": "string",
+                        "description": "Detailed multi-sentence description of the person's hairstyle"
+                    },
+                    "outfit": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of outfit keywords ordered from top to bottom"
+                    }
+                },
+                "required": ["hairstyle", "outfit"]
+            }
             
+            # JSON 모드로 모델 생성
+            model = genai.GenerativeModel(
+                'gemini-2.5-flash-lite-preview-09-2025',
+                generation_config=GenerationConfig(
+                    response_mime_type="application/json",
+                    response_schema=response_schema
+                )
+            )
+            
+            self.logger.info("Gemini API 호출 (JSON 모드)")
             response = model.generate_content(
                 [
                     human_prompt,
@@ -219,39 +241,25 @@ class LLMFactory:
                 }
             )
             
-            # JSON 응답 파싱
-            result_text = response.text
+            # JSON 응답 파싱 (Gemini JSON 모드는 항상 유효한 JSON 반환)
+            analysis_result = json.loads(response.text)
+            self.logger.info("JSON 응답 파싱 성공")
             
-            # JSON 블록 추출 (```json ... ``` 형식)
-            import re
-            json_match = re.search(r'```json\s*(.*?)\s*```', result_text, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(1)
-            else:
-                # 전체 텍스트를 JSON으로 시도
-                json_str = result_text
+            # outfit 배열을 문자열로 변환
+            processed_result = {
+                "hairstyle": analysis_result.get("hairstyle", "unknown"),
+                "outfit": " ".join(analysis_result.get("outfit", [])) if isinstance(analysis_result.get("outfit"), list) else str(analysis_result.get("outfit", "unknown"))
+            }
             
-            analysis_result = json.loads(json_str)
-            
-            # 리스트를 문자열로 변환 (Gemini가 리스트로 반환하는 경우 처리)
-            processed_result = {}
-            for key, value in analysis_result.items():
-                if isinstance(value, list):
-                    # 리스트를 자연스러운 문장으로 변환
-                    if key == "hairstyle":
-                        processed_result[key] = " ".join(value)
-                    elif key == "outfit":
-                        processed_result[key] = " ".join(value)
-                    elif key == "face":
-                        processed_result[key] = " ".join(value)
-                    else:
-                        processed_result[key] = " ".join(value)
-                else:
-                    processed_result[key] = str(value)
-            
-            self.logger.info(f"사람 이미지 분석 완료: {processed_result}")
+            self.logger.info(f"사람 이미지 분석 완료: hairstyle={processed_result['hairstyle'][:100]}..., outfit={processed_result['outfit'][:100]}...")
             return processed_result
             
+        except json.JSONDecodeError as e:
+            self.logger.error(f"JSON 파싱 실패: {e}, 응답 내용: {response.text[:200] if 'response' in locals() else 'N/A'}")
+            return {
+                "hairstyle": "unknown",
+                "outfit": "unknown"
+            }
         except Exception as e:
             self.logger.error(f"사람 이미지 분석 실패: {e}")
             # 기본값 반환

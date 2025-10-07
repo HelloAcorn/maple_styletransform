@@ -8,6 +8,7 @@ import time
 from typing import Dict, Any
 
 from app.core.router import PageSpec
+from app.core.character_categories import CharacterCategory, get_all_categories, get_category_description
 from app.modules.image_utils import ImageUtils
 from app.modules.byteplus_integration import BytePlusVideoGenerator
 from app.modules.video_utils import VideoUtils
@@ -125,18 +126,33 @@ class VideoGeneratorPage:
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            # YAML 프롬프트 스타일 선택
-            available_prompts = self.prompt_manager.get_video_prompt_list()
+            # 캐릭터 카테고리 선택
+            all_categories = get_all_categories()
+            category_options = {cat.value: get_category_description(cat) for cat in all_categories}
             
-            selected_prompt_key = st.selectbox(
-                "동영상 스타일",
-                options=available_prompts,
-                help="YAML 파일에서 로드되는 프롬프트 스타일을 선택하세요"
+            selected_category_value = st.selectbox(
+                "캐릭터 카테고리",
+                options=list(category_options.keys()),
+                format_func=lambda x: category_options[x],
+                help="캐릭터 타입에 따라 적합한 프롬프트가 제공됩니다"
             )
+            
+            # 선택된 카테고리에 해당하는 프롬프트 목록 가져오기
+            available_prompts = self.prompt_manager.get_video_prompts_by_category(selected_category_value)
+            
+            if available_prompts:
+                selected_prompt_key = st.selectbox(
+                    "동작/포즈 선택",
+                    options=list(available_prompts.keys()),
+                    help="선택된 카테고리의 프롬프트 스타일을 선택하세요"
+                )
+            else:
+                st.warning(f"⚠️ 선택된 카테고리({selected_category_value})에 프롬프트가 없습니다.")
+                selected_prompt_key = None
         
         with col2:
             # 동영상 길이
-            duration = st.slider("동영상 길이 (초)", 3, 6, 3)
+            duration = st.slider("동영상 길이 (초)", 3, 6, 5)
             
             # 해상도 선택
             video_generator = BytePlusVideoGenerator()
@@ -148,19 +164,30 @@ class VideoGeneratorPage:
                 "해상도",
                 options=resolutions,
                 format_func=lambda x: {
-                    "480p": "480p (9:16 세로)",
+                    "480p": "480p (1:1)",
                 }.get(x, x)
             )
         
         # 선택된 프롬프트 가져오기
-        final_prompt = self.prompt_manager.get_video_prompt_content(selected_prompt_key)
+        if selected_prompt_key:
+            final_prompt = self.prompt_manager.get_video_prompt_content_by_category(
+                selected_category_value, 
+                selected_prompt_key
+            )
+        else:
+            final_prompt = None
         
         # 동영상 생성 버튼
         st.divider()
         col_center = st.columns([1, 2, 1])[1]
         with col_center:
-            if st.button("🎬 동영상 생성 시작", type="primary", use_container_width=True):
-                self._process_video_generation(image, final_prompt, duration, resolution)
+            # 프롬프트가 선택되었을 때만 버튼 활성화
+            button_disabled = final_prompt is None
+            if st.button("🎬 동영상 생성 시작", type="primary", use_container_width=True, disabled=button_disabled):
+                if final_prompt:
+                    self._process_video_generation(image, final_prompt, duration, resolution)
+                else:
+                    st.error("프롬프트를 선택해주세요.")
     
     def _process_video_generation(self, image: Image.Image, prompt: str, duration: int, resolution: str) -> None:
         """동영상 생성 처리"""
