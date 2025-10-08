@@ -1,0 +1,71 @@
+# 호영 캐릭터 편집 프롬프트
+
+character_name: "호영"
+
+prompt: |
+  You are EDITING the existing 2D pixel sprite - DO NOT generate a new character.and redraw the sprite from scratch. ONLY modify the specified areas within existing pixel boundaries.
+  
+  EDITING MODE ONLY:
+  - Work INSIDE the existing sprite outline - no expansion, no shrinking
+  - The original sprite's body structure, pose, and proportions are UNTOUCHABLE
+  - Apply only the requested changes. Keep all non-mentioned parts untouched.
+  - This is MODIFICATION, not CREATION.
+
+  POSITIVE ELEMENTS (apply these):
+  - (chibi:1.5), (super deformed:1.3), (2-head-tall body ratio:1.4)
+  - (extremely short legs:1.4), (stubby limbs:1.3), short body
+  - HEAD = 75% of sprite height, BODY+LEGS = 25%
+  - pixel art, MapleStory style, tiny square pixels, bold outlines, flat bright colors
+  - KEEP: animal ears (100% unchanged), tail (100% unchanged), fan accessory
+  - large head, cute, compressed proportions
+  - Weapons/props can be oversized, but body stays tiny
+
+  NEGATIVE ELEMENTS (avoid these):
+  - DO NOT add any hats, caps, beanies, headbands, hair accessories from reference photo
+  - DO NOT cover or hide the animal ears
+  - DO NOT add anything on top of the head
+  - long legs, tall, slender, elongated body
+  - realistic proportions, 8-head body ratio, normal proportions
+  - stretched limbs, extended body parts
+  - scaling character to match weapon size
+  - blurry, anti-aliased edges
+
+  WHAT TO CHANGE (apply edits only to these):
+  - Clothing: replace the 2D pixel character's outfit with the person's clothing, rendered in the same 2D pixel-art style.
+  - Face: replace the original face with the person's traits—convert eye color, eye shape, perceived gender, and approximate age into 2D pixel art.
+  - Hairstyle: replace the original hairstyle with the person's hairstyle in the same 2D pixel style.
+    Edit face/hair only; do not change head size or any body segment length, and paint strictly inside existing outlines (no outline moves/additions).
+    Integrate hair naturally around the ears and tail features.
+    Use tiny square pixels, bold outlines, and flat bright colors.
+
+  === REFERENCE INFORMATION FOR EDITING ===
+  TARGET HAIRSTYLE: {hairstyle}
+  TARGET OUTFIT: {outfit}
+  
+  🎯 MANDATORY EDITING INSTRUCTIONS:
+  - The pixel sprite (first image) is your STARTING POINT - never ignore it
+  - Use the reference information ONLY to guide specific edits
+  - DO NOT recreate the entire character based on the reference descriptions
+  - ONLY edit the hair and clothing areas of the EXISTING sprite
+  - Keep everything else from the original sprite UNCHANGED
+  - This is SELECTIVE EDITING, not full character generation
+  - The original sprite's pose, body, and proportions are SACRED - never change them
+
+  STYLE & OUTPUT CONSTRAINTS:
+  - This is a precise edit. Do NOT redraw, rescale, stretch, rotate, or re-pose the character.
+  - Lock the sprite to the original pixel height and head-to-body ratio (exactly 2.00 heads; no scaling or vertical shift, 0-px tolerance).
+  - Replace the outfit keep every outline pixel fixed. No new volume, no shrunken areas, no added segments.
+  - Do NOT introduce perspective/foreshortening that alters apparent height or proportions.
+  - Do NOT change the canvas size, camera angle, or background.
+  - Maintain clean, consistent pixel edges; avoid anti-aliased or blurry strokes.
+  - Keep color count and saturation consistent with the original sprite unless the change requires it.
+
+  🚫 STRICTLY PROHIBITED (will cause failure):
+  - DO NOT generate a completely new character
+  - DO NOT redraw the entire sprite from scratch
+  - DO NOT change the sprite's fundamental structure or pose
+  - DO NOT create a new character based on the reference photo
+  - DO NOT ignore the existing pixel sprite and make something new
+  - Do not alter body shape, proportions, ears, tail, or fan.
+  - No new accessories, effects, or extra items. No pose changes.
+

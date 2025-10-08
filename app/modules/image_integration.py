@@ -6,8 +6,8 @@ import io
 import base64
 from typing import Optional, Union
 from PIL import Image
-import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
+from google import genai
+from google.genai import types
 
 from app.core.config import APIConfig
 from app.utils.logger import setup_logger, log_function_call, log_api_request, log_error
@@ -35,11 +35,19 @@ class LLMImageProcessor:
                 raise ValueError("Gemini API 키가 설정되지 않았습니다.")
             
             self.api_key = settings.GOOGLE_API_KEY
-            genai.configure(api_key=self.api_key)
             
-            # Gemini 2.5 Flash Image Preview 모델 (이미지 생성 지원)
-            self.model = genai.GenerativeModel('gemini-2.5-flash-image-preview')
-            self.logger.info("LLM 이미지 프로세서 초기화 완료")
+            # 새로운 google-genai SDK 클라이언트 생성
+            self.client = genai.Client(api_key=self.api_key)
+            
+            # 이미지 생성 설정 (1:1 비율)
+            self.image_generation_config = types.GenerateContentConfig(
+                response_modalities=['IMAGE'],
+                image_config=types.ImageConfig(
+                    aspect_ratio="1:1",  # 🎯 1:1 비율 고정!
+                )
+            )
+            
+            self.logger.info("LLM 이미지 프로세서 초기화 완료 (gemini-2.5-flash-image, aspect_ratio=1:1)")
         except Exception as e:
             log_error(self.logger, e, "LLM 이미지 프로세서 초기화")
         
@@ -121,10 +129,6 @@ class LLMImageProcessor:
             if isinstance(reference_photo, str):
                 reference_photo = Image.open(reference_photo)
             
-            # Gemini API로 직접 편집
-            base_character_part = self._image_to_parts(base_character)
-            reference_photo_part = self._image_to_parts(reference_photo)
-            
             # 강화된 편집 프롬프트 생성
             enhanced_edit_prompt = f"""🚨 EDITING MODE: Modify the PROVIDED PIXEL SPRITE (first image) using reference from the human photo (second image).
 
@@ -136,27 +140,20 @@ class LLMImageProcessor:
 
             🚨 CRITICAL: Edit the pixel sprite (first image) by applying changes from the reference (second image). Do NOT generate a new character."""
 
-            response = self.model.generate_content(
-                [
-                    enhanced_edit_prompt,
-                    base_character_part,
-                    reference_photo_part
-                ],
-                safety_settings={
-                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                }
+            # 새로운 SDK로 이미지 생성 (1:1 비율)
+            response = self.client.models.generate_content(
+                model="gemini-2.5-flash-image",
+                contents=[enhanced_edit_prompt, base_character, reference_photo],  # PIL Image 직접 전달
+                config=self.image_generation_config  # 1:1 비율 설정
             )
             
             # 응답에서 이미지 추출
-            if response.parts:
-                for part in response.parts:
-                    if hasattr(part, 'inline_data') and part.inline_data:
+            if response.candidates and len(response.candidates) > 0:
+                for part in response.candidates[0].content.parts:
+                    if part.inline_data is not None:
                         image_data = part.inline_data.data
                         result_image = Image.open(io.BytesIO(image_data))
-                        self.logger.info("통합 이미지 처리 성공")
+                        self.logger.info("통합 이미지 처리 성공 (1:1 비율)")
                         
                         # 임시 파일 정리
                         if 'reference_photo_path' in locals() and reference_photo_path != reference_photo:
@@ -208,42 +205,30 @@ class LLMImageProcessor:
     def _legacy_merge_images(self, base_character: Image.Image, reference_photo: Image.Image, character_name: str = None) -> Optional[Image.Image]:
         """기존 방식의 이미지 편집 (폴백용)"""
         try:
-            self.logger.info("기존 방식으로 픽셀 아트 캐릭터 편집 시작")
+            self.logger.info("픽셀 아트 캐릭터 편집 시작")
             
-            # 이미지를 API 형태로 변환
-            self.logger.debug("이미지를 API 형태로 변환 중")
-            base_character_part = self._image_to_parts(base_character)
-            reference_photo_part = self._image_to_parts(reference_photo)
-            
-            # YAML에서 픽셀 아트 편집 프롬프트 로드 (캐릭터 정보 전달)
+            # YAML에서 픽셀 아트 편집 프롬프트 로드
             prompt = self.prompt_manager.get_pixel_art_prompt(character_name)
             
-            # Gemini API 호출
+            # 새로운 SDK로 이미지 생성 (1:1 비율)
             log_api_request(self.logger, "Gemini", "generate_content", "픽셀 아트 편집 요청 시작")  
-            response = self.model.generate_content(
-                [
-                    prompt,
-                    base_character_part,
-                    reference_photo_part
-                ],
-                safety_settings={
-                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                }
+            response = self.client.models.generate_content(
+                model="gemini-2.5-flash-image",
+                contents=[prompt, base_character, reference_photo],  # PIL Image 직접 전달
+                config=self.image_generation_config  # 1:1 비율 설정
             )
             log_api_request(self.logger, "Gemini", "generate_content", "응답 수신")
             
             # 응답에서 이미지 추출
-            if response.parts:
-                for i, part in enumerate(response.parts):
-                    if hasattr(part, 'inline_data') and part.inline_data:
+            if response.candidates and len(response.candidates) > 0:
+                for part in response.candidates[0].content.parts:
+                    if part.inline_data is not None:
                         image_data = part.inline_data.data
                         result_image = Image.open(io.BytesIO(image_data))
+                        self.logger.info("이미지 편집 성공 (1:1 비율)")
                         return result_image
-                    elif hasattr(part, 'text'):
-                        self.logger.debug(f"파트 {i}에서 텍스트 응답: {part.text[:100]}...")
+                    elif part.text is not None:
+                        self.logger.debug(f"텍스트 응답: {part.text[:100]}...")
             
             self.logger.warning("응답에서 이미지 데이터를 찾을 수 없음")
             return None

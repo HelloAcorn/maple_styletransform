@@ -111,7 +111,7 @@ maple_styletransform/
 
 - **Frontend**: Streamlit
 - **AI Models**: 
-  - Google Gemini 2.5 Flash (이미지 편집)
+  - Google Gemini 2.5 Flash Image (이미지 편집)
   - OpenAI GPT-4o (텍스트 생성, 폴백)
   - BytePlus Seedance 1.0 (동영상 생성)
 - **LLM Framework**: LangChain (OpenAI 통합)

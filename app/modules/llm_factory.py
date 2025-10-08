@@ -14,6 +14,7 @@ from langchain_core.messages import HumanMessage
 
 # Gemini 관련
 import google.generativeai as genai
+from google.generativeai.types import GenerationConfig, HarmCategory, HarmBlockThreshold
 
 from app.core.llm_settings import get_llm_settings
 from app.utils.logger import setup_logger
@@ -73,8 +74,9 @@ class GeminiLLMClient(BaseLLMClient):
         super().__init__(config)
         try:
             genai.configure(api_key=config["api_key"])
-            self.model = genai.GenerativeModel('gemini-2.5-flash-image-preview')
-            self.logger.info("Gemini 클라이언트 초기화 완료")
+            # Gemini 2.5 Flash Image
+            self.model = genai.GenerativeModel('gemini-2.5-flash-image')
+            self.logger.info("Gemini 클라이언트 초기화 완료 (gemini-2.5-flash-image)")
         except Exception as e:
             self.logger.error(f"Gemini 클라이언트 초기화 실패: {e}")
             raise
